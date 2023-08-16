@@ -1,2 +1,2 @@
 # cloud-portifolio
-Acesse (aqui)[https://github.com/ricoy/cloud-portifolio/wiki] a wiki do meu portifólio.
+Acesse: https://github.com/ricoy/cloud-portifolio/wiki
