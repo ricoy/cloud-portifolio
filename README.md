@@ -1,2 +1,2 @@
 # cloud-portifolio
-Portifólio de aprendizados em cloud
+Acesse (aqui)[https://github.com/ricoy/cloud-portifolio/wiki] a wiki do meu portifólio.
