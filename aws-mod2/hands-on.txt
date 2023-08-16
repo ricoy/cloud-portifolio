@@ -1,0 +1,131 @@
+AWS - Módulo 2: Solução
+
+Parte 1:
+
+• Script de automação/criação dos usuários (AWS CLI)
+• Converter a planilha de usuários de acordo com script (Nomes das Colunas | Formato: CSV)
+• Executar script de automação
+• Validar criação dos usuários
+
+
+# Verificar os grupos criados e criar grupo para 'Estagiarios':
+• CloudAdmin
+• DBA
+• LinuxAdmin
+• RedesAdmin
+• Estagiarios: ReadOnlyAccess [Policy]
+
+
+# Criar pasta (aws-mod2) e baixar os arquivos:
+
+aws-iam-cria-usuario.sh, EquipeTIABCEmpresa.xlsx e  force_mfa_policy.txt
+
+Link para baixar o script:
+
+https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module2/aws-iam-cria-usuario.sh
+
+# Ajustar da Planilha 'EquipeTIABCEmpresa.xlsx':
+
+• Remover Coluna Nome
+• Remover "@abcempresa.com" da coluna Email
+• Renomear Coluna Email para 'usuarios'
+• Coluna Equipe Renomear conteudo para refletir nome do 'grupo' da AWS
+• Renomer Coluna Equipe para 'group'
+• Adicionar Coluna 'senha': MeMuda123456!
+
+► Salvar Como... CSV Format [ CSV (Comma Demilited) (*.csv) ]
+
+usuarios
+
+► Remover linhas..testar apenas 4 usuários!
+
+Save As... CSV Format [ CSV (Comma Demilited) (*.csv) ]
+usuarios2
+
+# AWS Cloud Shell  [ já vem com o AWS CLI instalado! ]
+
+1. Acessar AWS Cloud Shell
+
+2. Instalar 'dos2unix' no AWS Cloud Shell (necessário para execução do script)
+
+sudo yum install dos2unix -y
+
+3. Download do script no AWS Cloud Shell
+
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module2/aws-iam-cria-usuario.sh
+
+4. Configurar permissão do arquivo script para que se torne "executável"
+
+chmod +x aws-iam-cria-usuario.sh
+
+5. Upload do arquivo 'usuarios2.csv' para AWS Cloud Shell
+
+cat usuarios2.csv
+
+6. Executar o script para criação dos usuários:
+
+./aws-iam-cria-usuario.sh usuarios2.csv
+
+Validar os Usuários criados na Console AWS | IAM
+
+
+# Adicionar Política para permitir que os usuários possam alterar suas senhas:
+
+Acesse o Grupo | Permission | Add Permission/Attaach Police [ Filtrar por 'IAM']
+
+IAMUserChangePassword
+
+# Testar acesso com um dos usuários criados (DBA):
+
+• IAM | Dashboard | copy URL
+• Abra uma aba 'anônima|privada' em outro navegador e acesse com a URL   [ MeMuda123456! para MeMuda123456!@ ]
+
+---------------------------------------
+
+Parte 2: Melhores Práticas de Segurança
+
+• Habilitar MFA no 'seu usuário Root'
+• Criar e atachar a política 'EnforceMFAPolicy' nos grupos
+• Aplicar Politica de Senha na sua conta! [ IAM | Account settings ]
+
+# Habilitar MFA no seu usuário Root
+• Baixar aplictivo de autenticação: Google Authenticador
+• Gerar token e validar acesso usando um segundo fator de autenticação
+
+Activate MFA | Virtual MFA device
+Abra o autenticador e adicione uma 'conta' | Leia QRCode | Aguarde gerar dois tokens consecutivos
+
+Agora além de usarmos "usuário/senha" será necessário também o uso do Token gerado pelo Aplicativo!
+++camadaSegurança! 🔥🚀
+
+
+# Adicionar MFA para os usuários:
+
+Polices | Create Policy
+JSON: remover o código que existe e colar do arquivo disponibilizado!
+Next | Review | Name: EnforceMFAPolicy
+Aplicar a Política em todos os Grupos
+
+
+# 'Change Password Policy' Aplicar Politica de Senha | Tornar Senha mais Forte!!
+
+# Testar acesso dos usuários!
+
+MeMuda123456! | MeMuda123456!@
+
+# Login com usuário | Ativação MFA
+
+Clique no nome do usuário logado | Security Credentials
+MFA device
+Gerar os tokens
+Após habilitar 'MFA' faça Loggof/Login
+
+
+# Evidência
+
+| Usuários Criados
+| MFA Virtual Enable
+| Last Activity (acesso feito com os usuários criados)
+
+
+TCB 🚀
