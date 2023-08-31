@@ -1,0 +1,157 @@
+AWS - Módulo 5: Solução
+
+
+Parte 1 - Terraform
+
+
+- Download VSCode | Extensão para o Terraform:
+
+https://code.visualstudio.com/download
+
+- Outras Extensões: Material Icon Theme | Prettier
+
+- Download dos arquivos do Terraform:
+
+https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module5/aws-mod05.zip
+
+- Editar arquivos 'main.tf' e 'provider.tf' usando o VSCode:
+
+- Vamos usar VPC_ID e SUBNET_ID default
+
+- Crie um novo par de chaves:
+
+name: sshkey1
+format: .pem
+
+- Salve as alterações e crie um arquivo compactado com os arquivos do terraform (main.tf e provider.tf)
+
+
+- Upload do arquivo zipado para o AWS Cloud Shell e descompactar!
+
+
+- Instalar Terraform no AWS Cloud Shell
+
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum -y install terraform
+
+terraform -v
+
+- Executando o terraform
+
+• terraform init
+• terraform plan
+• terraform apply
+
+- Documentação Terraform https://learn.hashicorp.com/terraform
+- Documentação Terraform AWS https://registry.terraform.io/providers/hashicorp/aws/latest/docs
+
+- Verifique IAM Role associada nas EC2: nenhuma por enquanto!
+- Novo arquivo criado: terraform.tfstate
+
+
+
+Parte 2 - AWS Systems Manager
+
+- Criar uma IAM role 'SystemsManagerToSNS'
+
+• IAM | Role | Create Role
+• Use cases for other AWS services: Systems Manager | Allows SSM to call AWS services on your behalf
+• Policy: AmazonSNSFullAccess
+• Role Name: SystemsManagerToSNS
+
+- Criar um Tópico para Notitificações 'DevOpsNotification'
+
+• SNS | Topic | Create Topic |
+• Type: Standard
+• Name: DevOpsNotification
+• Copiar o "ARN" do Tópico criado!
+
+Exemplo: arn:aws:sns:us-east-1:937193033886:DevOpsNotification
+
+- Criar uma 'Subscription'
+
+• Create Subscription
+• Protocol: Email
+• Endpoint: seu-email
+
+• Acesse o e-mail informado e confirme o recebimento da notificação 'confirm subscription'
+
+
+- Systems Manager
+
+• System Manager | Quick Setup [confirme a região 'us-east-1' se for solicitado!]
+• Configuration types: Host Management / create
+• Targets: Choose how you want to target instances | Manual
+• Selecione as instâncias que foram criadas via terraform
+• Create!
+
+[ PAUSE: 15 minutos ]
+
+• Validar 'Configuration deployment status' e 'Configuration association status'
+
+• Acesse Quick Setup | Node Management: Session Manager | Clique em 'Start Session'
+
+• Selecione uma instância e clique em "Start Session"
+
+'cat /etc/*release*'
+'ls -ltr /usr/bin/security_agent'
+
+
+- Agente de instalação de Segurança
+
+• Acesse Quick Setup | Node Management: Run Command | Run Command [ AWS-RunShellScript]
+
+- Command parameters:
+
+sudo wget -q https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module5/install_security_agent.sh -P /tmp
+sudo chmod +x /tmp/install_security_agent.sh
+sudo /tmp/install_security_agent.sh
+ls -ltr /usr/bin/security_agent
+
+• Targets: choose instances manually | selecione as instâncias
+
+• Desmarque [ ] Enable writing to S3 Bucket.
+
+• Enable SNS Notification
+
+IAM Role: SystemsManagertoSNS
+SNS Topic: <ARN>  arn:aws:sns:us-east-1:510907048761:DevOpsNotification
+
+• Events notifications:  all Events
+
+• Change notifications: Command status on each instance changes
+
+- RUN  | Open the Email and check the notification!
+
+Atualize a página, acesse uma das instâncias e verifique 'output'!
+
+- Evidência: Tela do 'Run Command'
+
+
+Parabéns!!!
+
+
+- Removendo recursos criados:
+
+- AWS Cloud Shell: re-instalar Terraform
+
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum -y install terraform
+
+ls [terraform state file]
+
+./terraform destroy
+
+
+- AWS Systems Manager | Quick Setup | Select 'Host Management'
+| Action 'Delete Configuration' | Remove All OUs and Regions  
+
+- AWS Systems Manager | Quick Setup | Select 'Host Management'
+| View Deatails | Delete  Configuration: type "delete" Confirm: Delete!
+
+
+- Supporting Links:
+
+https://aws.amazon.com/premiumsupport/knowledge-center/systems-manager-ec2-instance-not-appear/
