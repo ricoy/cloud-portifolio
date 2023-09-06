@@ -1,0 +1,21 @@
+?Resumo da estimativa;;;;;;;;;
+Custo inicial;Custo mensal;Total 12 months cost;Moeda;;;;;;
+0;40.697.619.999.999.900;488371.44;USD;;;;;;
+;;* Inclui um custo inicial;;;;;;;
+;;;;;;;;;
+;;;;;;;;;
+Estimativa detalhada;;;;;;;;;
+Hierarquia de grupos;Região;Descrição;Serviço;Pagamento adiantado;Mensal;First 12 months total;Moeda;Status;Resumo da configuração
+My Estimate;América do Sul (São Paulo);EC2 - PRD;Amazon EC2 ;0;12.843.899.999.999.900;15412.68;USD;;"Locação (Instâncias compartilhadas); Sistema operacional (Linux); Carga de trabalho (Consistent; Número de instâncias: 5); Instância do EC2 avançada (t3.2xlarge); Pricing strategy ( 3 Year  None upfront); Habilitar monitoramento (desabilitada); EBS Quantidade de armazenamento (400 GB); DT Entrada: Not selected (0 TB por mês); DT Saída: Not selected (0 TB por mês); DT Intrarregião: (0 TB por mês)"
+My Estimate;América do Sul (São Paulo);ALBs - DEV / HML / PRD;Application Load Balancer;0;291.27;3495.24;USD;;Número de Application Load Balancers (3)
+My Estimate;América do Sul (São Paulo);EFS;Amazon Elastic File System (EFS);0;261.1;3133.20;USD;;Capacidade de armazenamento desejada (1750 GB por mês)
+My Estimate;América do Sul (São Paulo);EC2 - HML/DEV;Amazon EC2 ;0;133.857;1606.28;USD;;"Locação (Instâncias compartilhadas); Sistema operacional (Linux); Carga de trabalho (Consistent; Número de instâncias: 1); Instância do EC2 avançada (t3a.xlarge); Pricing strategy ( 3 Year  None upfront); Habilitar monitoramento (desabilitada); EBS Quantidade de armazenamento (300 GB); DT Entrada: Not selected (0 TB por mês); DT Saída: Not selected (0 TB por mês); DT Intrarregião: (0 TB por mês)"
+My Estimate;América do Sul (São Paulo);Oracle - PRD;Amazon RDS for Oracle;0;15060.12;180721.44;USD;;"Quantidade de armazenamento (1500 GB); Armazenamento para cada instância do RDS (SSD de uso geral (gp2)); Núero de inst?cias do RDS for Oracle (2); Tipo de inst?cia (db.m4.10xlarge); Utiliza?o (somente sob demanda) (100 %Utilized/Month); Op?o de implanta?o (Multi-AZ); Modelo de pre? (OnDemand); Licen? (Bring your own license); Database Edition (Enterprise); Armazenamento de backup adicional (3000 GB)"
+My Estimate;América do Sul (São Paulo);Oracle - HML;Amazon RDS for Oracle;0;6980.48;83765.76;USD;;"Quantidade de armazenamento (1500 GB); Armazenamento para cada instância do RDS (SSD de uso geral (gp2)); Número de instâncias do RDS for Oracle (2); Tipo de instância (db.m4.4xlarge); Utilização (somente sob demanda) (100 %Utilized/Month); Opção de implantação (Multi-AZ); Modelo de preço (OnDemand); Licença (Bring your own license); Database Edition (Enterprise); Armazenamento de backup adicional (3000 GB)"
+My Estimate;América do Sul (São Paulo);Oracle - DEV;Amazon RDS for Oracle;0;1686.4;20236.80;USD;;"Quantidade de armazenamento (500 GB); Armazenamento para cada instância do RDS (SSD de uso geral (gp2)); Número de instâncias do RDS for Oracle (2); Tipo de instância (db.m3.2xlarge); Utilização (somente sob demanda) (100 %Utilized/Month); Opção de implantação (Single-AZ); Modelo de preço (OnDemand); Licença (Bring your own license); Database Edition (Enterprise); Armazenamento de backup adicional (1000 GB)"
+Global;All;Plano de suporte Empresarial;AWS Support;0;15000;180000.00;USD;"Supports 24/7 phone; chat; and email access to Cloud Support Engineers for unlimited contacts; with and a response time of less than 15 minutes.";
+;;;;;;;;;
+;;;;;;;;;
+;;;;;;;;;
+Confirmação;;;;;;;;;
+"* A Calculadora de Preços da AWS fornece apenas uma estimativa de suas taxas da AWS e não inclui nenhuma taxa aplicável. Suas taxas reais dependem de vários fatores; inclusive de seu uso real dos serviços da AWS.";;;;;;;;;
