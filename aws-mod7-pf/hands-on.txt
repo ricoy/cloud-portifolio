@@ -1,0 +1,156 @@
+AWS - Módulo 7: Solução
+
+
+Parte 1 :  E-commerce MVP deployment
+
+- Criar uma conta Free no Magento:   https://marketplace.magento.com/
+
+- Criar e salvar par de chaves (Public | Private) de sua conta no Magento
+
+Your User | My Profile | MarketPlace | Access Key | Magento 2
+
+Exemplo:
+Public Key: b2041f02509330fbbb96312b29995cb6
+Private Key: 7be7c69e79bd798a2a8a6b00983a5b72
+
+- Instalando Terraform no AWS Cloud Shell
+
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum -y install terraform
+
+- Download dos arquivos do Terraform no AWS Cloud Shell
+
+mkdir projeto_final
+cd projeto_final
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module7/projeto-final-terraform.zip
+unzip projeto-final-terraform.zip
+cd terraform
+
+- Editar variáveis do arquivo 'main.tf'
+
+• vi main.tf
+• VPC-id: VPC Default
+• SSH Key: sshkey1
+
+• instance_type = "t3a.large"  [ It's not Free: t3a.large$0.0752 / hour ]
+
+https://aws.amazon.com/ec2/pricing/on-demand/
+
+• Salvando as alterações:
+
+("Esc" | ":x")
+
+
+- Executando o Terraform
+
+• terraform init
+• terraform plan
+• terraform apply
+
+• ls | novo arquivo foi criado: 'terraform.tfstate'
+
+
+
+Parte 2: Instalando Ansible na EC2
+
+- Conectando na instância EC2 via SSH usando o 'GitBash':
+
+• ssh -i sshkey1.pem ec2-user@ec2-public-ip
+
+
+- Instalando Ansible na EC2
+
+sudo yum-config-manager --enable epel
+sudo yum install ansible -y
+
+- Download do playbook para execução do Ansible
+
+• wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module7/projeto-final-ansible-magento2.zip
+• unzip projeto-final-ansible-magento2.zip
+
+- Editar os parametros
+
+• cd ansible-magento2
+• vi group_vars/all.yml
+
+* magento_domain: ec2-public-ip
+* server_hostname: ec2-public-ip
+* repo_api_key: b2041f02509330fbbb96312b29995cb6 (insira sua chave publica)
+* repo_secret_key: 7be7c69e79bd798a2a8a6b00983a5b72 (insira sua chave privada)
+
+• Save the file ("Esc" | ":x")
+
+- Executando Ansible para fazer o deploy das ferramentas do e-commerce
+
+• ansible-playbook -i hosts.yml ansible-magento2.yml -k -vvv --become
+
+- Testando E-commerce Website:
+
+• Copie e Cole o IP Público da EC2 em um navegador
+
+- Configurando o e-commerce:
+
+• http://<EC2_PUBLIC_IP>/securelocation
+
+User: Admin
+Password: Strong123Password#
+
+- Download dos arquivos (imagens) do e-commerce
+
+• https://tcb-bootcamps.s3.amazonaws.com/bootcamp-aws/pt/module7/final-project-images.zip
+
+-- Content > Configuration > Default Store View > Edit
+--- 'HTML Head' | Default page title: The Cloud Bootcamp Store
+--- 'Header' > Logo image: The Cloud Bootcamp logo from images
+--- 'Header' > Welcome text: Welcome to The Cloud Bootcamp Store!
+--- Save Configuration!
+
+• Se for requisitado "Refresh no Cache", siga esses passos:
+
+--- Cache Refresh (Flush it) | Please go to 'Cache Management' and refresh cache types.
+
+Configuration Status: INVALIDATED | Select it and Click on "Flush Mageno Cache'
+
+
+• Caso contrário, siga os passos de customização do e-commerce!
+
+-- Catalog > Products > Add product > The Cloud Bootcamp T-Shirt
+--- Price: 80
+--- Quantity: 100
+--- Images And Videos > Add images
+--- Save
+
+-- Content > Pages > Home Pages > Select | Edit
+--- Click Content > Erase content
+--- Insert Widget > Widget type: Catalog New Products List > Insert Widget
+
+- Validando as alterações realizadas:
+
+Click em  Admin | Customer View
+
+
+Parabéns!!! E-commerce implementado com sucesso!!!
+
+
+- Colete as evidências!
+
+
+- Remova os recursos implementados:
+
+- Se necessário, re-instalar o Terraform
+
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum -y install terraform
+
+- Acesse a pasta de onde executamos os Terraform na parte 1:
+
+• cd ~/projeto_final/terraform/
+
+• terraform destroy
+
+
+- Links
+
+Ansible Documentation: https://docs.ansible.com/ansible-core/devel/user_guide/index.html
