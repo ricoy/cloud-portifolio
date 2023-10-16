@@ -1,0 +1,393 @@
+► Criando uma VM - AWS EC2:
+
+AWS > EC2
+
+• Image: Ubuntu 22.04
+• Instance Type: t2.micro
+• Key Pairs: docker-vm-ssh
+• VPC: Default
+• Security Group (Firewall): docker-vm-sg
+
+
+► Acessando a VM-EC2:
+
+ssh -i docker-vm-ssh.pem ubuntu@ip-publico-ec2
+
+-------------------------------------------------------------
+
+► Instalando Docker no Linux Ubuntu
+
+https://docs.docker.com/engine/install/ubuntu/
+
+• Instalando através de um script
+
+# Download do Script:
+
+curl -fsSL https://get.docker.com -o get-docker.sh
+
+# Executando o Script:
+
+sudo sh get-docker.sh
+
+# Testando docker:
+
+docker ps
+
+Error: /var/run/docker.sock: connect: permission denied
+
+# Corrigindo as permissões:
+
+sudo chmod 666 /var/run/docker.sock
+
+# Testando docker novamente:
+
+docker ps
+
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+docker version
+docker info
+
+--------------------------------------------------------------------
+
+► Bonus! 😁
+
+• 'The Matrix'
+sudo apt install cmatrix
+http://manpages.ubuntu.com/manpages/bionic/man1/cmatrix.1.html
+
+• 'A Flying Train'
+sudo apt install sl |  sl -F
+https://itsfoss.com/ubuntu-terminal-train/
+
+• 'Cowsay'
+sudo apt install cowsay  | cowsay Hello Bootcamper!!!
+https://www.vivaolinux.com.br/dica/cowsay-A-vaquinha-que-fala-no-seu-terminal
+https://opensource.com/article/21/11/linux-cowsay-command
+
+• Listing Containers:
+docker ps
+
+• Listing Images:
+docker images
+
+• Creating a Container:
+docker run docker/whalesay
+
+docker ps -a
+docker images
+
+docker run docker/whalesay cowsay 'Hello Bootcampers, Welcome!'
+
+docker ps -a | A lot of containers created...
+
+docker images | Only one image!
+
+The End 🐳
+
+============================================================================
+
+Infomação Extra
+
+Como resolver: Amazon EC2 ssh timeout devido tempo de inatividade | perdendo conexão!
+
+Passo 1.
+Adicionar uma diretiva "client-alive" na VM no arquivo de configuratção 'SSH-server'
+
+echo 'ClientAliveInterval 60' | sudo tee --append /etc/ssh/sshd_config
+
+Passo 2.
+Reiniciar o 'SSH server'
+
+sudo service ssh restart
+
+► Limpando o ambiente:
+
+docker system prune -a -f --volumes
+
+mkdir docker-images
+cd docker-images
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module3/docker_images.zip
+sudo apt install unzip | if some warning about restarting service, just proceed!
+unzip docker_images.zip
+
+--------------------------------------------------------------------------------------
+SimpleHTTPServer é um módulo do Python que permite criar um  webserver
+de forma fácil e rápida!
+Uma das grandes vantagens do 'SimpleHTTPServer' é que você não precisa instalar nada,
+apenas ter o python instalado!
+---------------------------------------------------------------------------------------
+
+• Dockerfile:
+
+FROM python:2.7
+WORKDIR /html
+COPY index.html .
+EXPOSE 3000
+CMD python -m SimpleHTTPServer 3000
+
+docker build . -t devopscloudbootcamp/my-python-img:v1.0
+docker images
+docker run --rm -d -p 3000:3000 --name ctr-py-http devopscloudbootcamp/my-python-img:v1.0
+
+► Modificando o Dockerfile:
+
+FROM python:2.7
+WORKDIR /html
+COPY . .
+EXPOSE 3000
+CMD python -m SimpleHTTPServer 3000
+
+► Docker TAG:
+
+docker tag IMAGE-ID devopscloudbootcamp/my-python-image:v0.0
+
+► Docker Push:
+
+docker push devopscloudbootcamp/my-python-image:v2.0
+
+Se receber um:
+
+'denied': requested access to the resource is denied
+
+Execute:
+
+docker login
+
+
+# Informações dos processo:
+
+docker top ctr-id
+
+docker stats (cpu, mem usage) | statistics
+
+🚀
+
+► Limpando o ambiente:
+
+docker system prune -a -f --volumes
+
+mkdir docker-volumes
+cd docker-volumes
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module3/docker_volumes.zip
+sudo apt install unzip | if some warning about restarting service, just proceed!
+unzip docker_volumes.zip
+
+nano Dockerfile | nano requirements
+
+docker build . -t devopscloudbootcamp/img-upload-file:v1.0
+docker images
+
+► Executando container sem 'Persistência de dados':
+
+docker run --rm -d -p 3000:3000 --name ctr-upload-file devopscloudbootcamp/img-upload-file:v1.0
+
+docker exec CTR-ID ls   |  ls uploads
+docker stop CTR-ID
+docker run --rm -d -p 3000:3000 --name ctr-upload-file devopscloudbootcamp/img-upload-file:v1.0
+docker exec CTR-ID ls   |  ls uploads
+
+► Criando um volume:
+
+docker volume ls
+docker volume create upload-files
+docker volume ls
+
+sudo ls -l /var/lib/docker/volumes    [Where Docker store all its data]
+
+docker stop CTR-ID
+
+► Container com Persistência (Volume) gerenciado pelo Docker:
+
+docker run --rm -d -p 3000:3000 --name ctr-upload-file -v upload-files:/app/uploads devopscloudbootcamp/img-upload-file:v1.0
+
+docker inspect CTR-ID | grep volume
+
+docker stop CTR-ID
+
+docker run --rm -d -p 3000:3000 --name ctr-upload-file -v upload-files:/app/uploads devopscloudbootcamp/img-upload-file:v1.0
+
+
+[ Bind Mount ]
+
+► Persistência com Pasta/Diretório gerenciado por Você:
+
+docker stop CTR-ID
+
+mkdir bkp-upload
+pwd
+docker run --rm -d -p 3000:3000 --name ctr-upload-file -v /home/ubuntu/docker-volumes/bkp-upload:/app/uploads devopscloudbootcamp/img-upload-file:v1.0
+
+► Atualizando arquivos do Projeto em tempo real, sem precisar "re-buildar" a aplicação:
+
+docker stop CTR-ID
+docker run --rm -d -p 3000:3000 --name ctr-upload-file -v /home/ubuntu/docker-volumes/templates:/app/templates devopscloudbootcamp/img-upload-file:v1.0
+
+🚀
+
+
+COMPLETE & CONTINUE
+
+============================================================================
+
+► Limpando o ambiente:
+
+docker system prune -a -f --volumes
+
+► Default Networks:
+
+docker network ls
+
+docker network inspect bridge
+
+sudo apt install bridge-utils
+brctl show
+
+docker run -it ubuntu [ quando você sair, o container vai parar a execução! ]
+
+Solução:
+
+docker run -itd ubuntu bash | docker exec -it CTR-ID bash
+apt update
+apt install iproute2
+ip a
+ip a | grep global
+ip hostname -I
+
+docker network inspect bridge
+brctl show
+
+---
+
+► Criando uma Rede (Network)
+
+docker network create devops-net
+docker network ls
+docker network inspect devops-net
+
+docker network create -d macvlan my-mac-net
+docker network ls
+
+► Conectando uma Network em um Container:
+
+docker run -d --name my-ctr-nginx --net devops-net nginx
+docker run -d --name my-ctr-httpd --net devops-net httpd
+
+► Inspecionando container:
+
+docker inspect my-ctr-nginx
+docker inspect my-ctr-httpd
+
+► Inspecionando network:
+
+docker network inspect devops-net
+
+► Disconectando uma network de um container
+
+docker network disconnect devops-net my-ctr-nginx my-ctr-httpd
+
+► Removendo uma rede (network)
+
+docker network rm my-mac-net devops-net
+
+🚀
+
+============================================================================
+
+# YAML para Docker Compose: WordPress + MySQL | py-webserver
+
+VS Code Extension: Docker (Microsoft) | YML (Redhat)
+-------------------------------------------------------
+version: '3'
+
+services:compose
+ctr-db:
+image: mysql:5.7
+volumes:
+- db-vol:/var/lib/mysql
+environment:
+MYSQL_ROOT_PASSWORD: wordpress
+MYSQL_DATABASE: wordpress
+MYSQL_USER: devopscloudbootcamp
+MYSQL_PASSWORD: devopscloudbootcamp
+networks:
+- wp-net
+restart: always
+
+ctr-wp:
+image: wordpress:latest
+ports:
+- "3000:80"
+environment:
+WORDPRESS_DB_HOST: ctr-db:3306
+WORDPRESS_DB_USER: devopscloudbootcamp
+WORDPRESS_DB_PASSWORD: devopscloudbootcamp
+WORDPRESS_DB_NAME: wordpress
+networks:
+- wp-net
+restart: always
+depends_on:
+- ctr-db
+
+py-websever:
+build:
+context: .
+dockerfile: Dockerfile
+ports:
+- "3001:7000"
+restart: always
+
+volumes:
+db-vol: {}
+networks:
+wp-net: {}
+
+---------------------------------------------------------------
+
+# Yaml Validator:  https://jsonformatter.org/yaml-validator
+# Yaml Lint: http://www.yamllint.com
+
+🚀
+
+================================================================
+
+► Limpando o ambiente:
+
+docker system prune -a -f --volumes
+
+► Instalando Docker Compose no Linux:
+
+https://docs.docker.com/compose/install/
+
+Não precisamos instalar!
+EC2 Ubuntu 22.04 já tem o Docker Compose instalado!
+
+► Checando:
+
+docker compose version
+
+mkdir docker-compose
+cd docker-compose
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module3/docker-compose.yml
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module3/docker_images.zip
+
+
+docker compose up
+
+► Parando o docker compose: CTRL + C
+
+docker compose up -D
+
+docker compose ps
+docker ps
+docker network ls
+docker volume ls
+docker compose down
+
+
+?? Como remover as variáveis que estão dentro do arquivo YAML...
+...e usar um arquivo externo para essa finalidade ??
+
+🚀
+
+
