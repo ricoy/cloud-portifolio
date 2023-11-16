@@ -1,0 +1,482 @@
+Hands-on Pods: Modo Imperativo e Declarativo
+
+# Parte 1: Criando um POD via linha de comando (Modo Imperativo)
+
+==============================
+# Start VM | SSH
+# minikube status | minikube start
+# Accessing Minikube Dashboard:
+
+minikube dashboard --url
+
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+If Error: listen tcp 0.0.0.0:8001: bind: address already in use!
+
+Solução: sudo killall kubectl
+==============================
+
+# Abra uma nova sessão do Terminal SSH
+
+• Criando um Pod:
+
+kubectl run pod-test --image httpd [ imagem no docker hub ]
+kubectl get pods
+kubectl get pod pod-test
+
+• Tente criar um pod com uma imagem inexistente:
+
+kubectl run pod-test2 --image htppd [ image não existe ]
+kubectl get pods --watchImagePullBackOff | ErrImagePull
+kubectl delete pod pod-test2
+
+• Listando mais informações do Pod:
+
+kubectl get pods -o wide  |  kubectl get pod tcb-pod -o wide
+
+• Informações mais detalhadas do Pod:
+
+kubectl describe pod pod-test
+
+...valide a criação do Pod no Dashboard do Minikube
+
+
+Parte 2
+
+# Criando POD usando arquivo YAML (Modo Declarativo)
+
+vim pod.yml
+
+"Acompanhe as instruções pelo vídeo e crie o arquivo pod.yml"
+
+kubectl get pods
+kubectl create -f pod.yml or kubectl apply -f pod.yml
+kubectl get pods
+kubectl get pod tcb-pod
+kubectl describe pod tcb-pod
+
+...valide a criação do Pod no Dashboard do Minikube
+
+kubectl delete pod pod-test
+
+Mantenha o 'tcb-pod', não delete 
+
+# Stop na VM
+
+
+TCB
+
+
+COMPLETE & CONTINU
+
+==================================================================================
+
+Hands-on ReplicaSets
+
+
+# Start VM | SSH
+# minikube status | minikube start
+# Accessing Minikube Dashboard:
+
+minikube dashboard --url
+
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+If Error: listen tcp 0.0.0.0:8001: bind: address already in use!
+Solução: sudo killall kubectl
+
+
+# Abra uma nova sessão do Terminal SSH
+
+
+Parte 1
+
+# Criando um arquivo de definition para o 'replicaSet'
+
+• verificando os pods criados:
+
+kubectl get pods | 'tcb-pod' rununing!
+
+• criando arquivo de definição:
+
+vim rs.yml
+
+• criando o replicaSet:
+
+kubectl apply -f rs.yml or kubectl apply -f rs.yml
+
+Quantos Pods serão criados?
+Apenas mais 02. Por que?
+
+• Listando replicaset:
+
+kubectl get replicaset  OU  kubectl get rs
+
+Mais detalhes:  kubectl describe rs tcb-rs
+
+• Deletando Pod:
+
+kubectl delete pod <pod-name>  |  Outro será criado!!
+
+
+Parte 2
+
+TIP:
+alias k='kubectl' [temporary]
+Add it into ~/.bashrc file for fixed solution! [line: 93]
+
+# Atualizando o replicaSet:
+
+• Opção 1: editar 'replicas' do arquivo 'rs.yml'
+
+k replace -f rs.yml
+
+• Opção 2: k scale --replicas=3 -f rs.yml
+
+• Opção 3: k scale --replicas=1 rs tcb-rs  | k scale rs tcb-rs --replicas=2
+
+• Opção 4: k edit rs tcb-rs
+
+
+TIPS:
+
+kubectl get rs tcb-rs -o yaml  
+kubectl get rs tcb-rs -o yaml > bkp-rs
+
+# Deletando replicaSet:
+
+kubectl delete rs tcb-rs
+
+# Stop na VM
+
+
+TCB
+
+
+==================================================================================
+
+Hands-on Deployments
+
+# Start VM | SSH
+# minikube status | minikube start
+# Accessing Minikube Dashboard:
+
+minikube dashboard --url
+
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+If Error: listen tcp 0.0.0.0:8001: bind: address already in use!
+
+Solução: sudo killall kubectl
+
+
+# Criando um arquivo de definição para o 'deployment'
+
+• verificando os pods criados:
+
+kubectl get pods
+
+• criando arquivo de definição:
+
+vim dep.yml  
+
+• criando um deployment:
+
+kubectl create -f dep.yml OU kubectl apply -f dep.yml
+
+• Listando deployments:
+
+kubectl get deployments OU kubectl get deploy
+
+Mais detalhes:  kubectl describe deploy tcb-dep
+
+# Listando tudo (deployment, replicaSet, nodes)
+
+kubectl get deploy
+kubectl get replicaset
+kubectk get pods
+
+OU
+
+kubectl get all
+
+# Deletando deployments:
+
+kubectl delete deploy tcb-dep
+
+# Stop na VM
+
+
+TCB
+
+==================================================================================
+
+Hands-on Deployments - Update and Rollback
+
+
+# Start VM | SSH
+# minikube status | minikube start
+# Accessing Minikube Dashboard:
+
+minikube dashboard --url
+
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+If Error: listen tcp 0.0.0.0:8001: bind: address already in use!
+Solução: sudo killall kubectl
+
+• criando deployment:
+
+kubectl create -f dep.yml OU kubectl apply -f dep.yml
+
+• Verificando o Status do processo do rollout:
+
+kubectl rollout status deployment/tcb-dep
+
+# Deletar, criar novamente o 'deployment' e ver o status:
+
+kubectl delete deploy tcb-dep
+kubectl apply -f dep.yml && kubectl rollout status deployment/tcb-dep
+
+• Verificando o histórico do processo do rollout:
+
+kubectl rollout history deployment/tcb-dep
+
+CHANGE-CAUSE has '<none>' | Precisamos adicionar a flag '--record'
+
+# Deletar, criar novamente o 'deployment' e usar a flag '--record'
+
+kubectl delete deploy tcb-dep
+kubectl apply -f dep.yml --record
+kubectl rollout history deployment/tcb-dep
+
+• Informações do Deployment:
+
+kubectl describe deploy tcb-dep
+kubectk get rs
+
+# Alterar a versão da imagem para 'nginx:1'
+
+kubectl edit deploy tcb-dep --record && kubectl rollout status deployment/tcb-dep
+
+kubectl rollout history deployment/tcb-dep
+
+# Verficando os eventos do deployment:
+
+kubectl describe deploy tcb-dep
+kubectl get rs
+
+# Rollback Process - Desfazer (undo) as mudanças/alterações.
+
+kubectl rollout undo deployment/tcb-dep && kubectl rollout status deployment/tcb-dep
+kubectl rollout history deployment/tcb-dep
+
+kubectl describe deploy tcb-dep  |  check the current Image Version
+
+kubectl get rs | Check the current RS in use
+
+
+# Delando deployments:
+
+kubectl delete deploy tcb-dep
+
+# Stop na VM
+
+
+TCB
+
+==================================================================================
+
+Hands-on GCP | Cloud Shell | NodePort
+
+
+Parte 1
+
+# Apenas abra a console da GCP e acesse 'Kubernetes Engine' | Enable API
+# Verifique que não há nenhum luster, Workloads, Services... criados
+
+# Abra o Cloud Shell
+
+# Alterando o prompt:
+
+sudo vim /google/devshell/bashrc.google
+Remove "\u@cloudshell:"   [L 132]
+
+Reload no Cloud Shell
+
+kubectl version
+
+alias k='kubectl'
+
+kubectl config view
+kubectl config get-contexts
+cat .kube/config
+
+# Configurando project no Cloud Shell
+
+gcloud config set project PROJECT-ID
+
+# Criando um Cluster: tcb-cluster
+
+gcloud container clusters create tcb-cluster --num-nodes 3 --zone us-central1-f
+
+# Verificando na console o Cluster/Nodes criados
+
+# Atualizando o Kubeconfig para o 'tcb-cluster'
+
+gcloud container clusters get-credentials tcb-cluster --zone us-central1-f
+
+kubectl config view
+kubectl config get-contexts
+cat .kube/config
+
+# Verificando Pods / Nodes:
+
+kubectl get pods  [ no resources found ]
+kubectl get nodes [ 3 Nodes ]
+kubectl top nodes [ Uso de CPU e Memória 👀 dos SREs ]
+kubectl get deploy
+kubectl get svc   [ ClusterIP ]
+
+
+Parte 2: Deploy + Service NodePort
+
+• Criando um Deployment com 3 (pods) replicas do NGINX Webserver (httpd)
+
+## Crie um arquivo de definição para o 'deployment'
+## Acompanhe as instruções pelo vídeo
+
+vim dep.yml
+
+kubectl create -f dep.yml
+
+kubectl get pods
+kubectl get deploy
+
+# Verificando o deployment criado na console
+
+• Criando um serviço do tipo 'NodePort'
+
+## Crie um arquivo de definição para o 'service'
+## Acompanhe as instruções pelo vídeo
+
+vim svc.yml
+
+kubectl apply -f svc.yml
+
+kubectl get svc
+kubectl get all
+kubectl get nodes -o wide
+
+• Acessando o webserver:
+
+node-external-ip:nodePort
+
+# Configure 'Firewall Rule' para permitir o trafego na porta do 'node'.
+
+# Deletando o Cluster:
+
+gcloud container clusters delete tcb-cluster --zone us-central1-f
+
+
+TCB
+
+==================================================================================
+
+Hands-on GCP | Cloud Shell | Microservices: NodePort
+
+
+Parte 1 - Os mesmos passos feitos no hands-on anterior (Networking | Hands-on NodePort)
+
+# Abrir Cloud Shell
+# alias k='kubectl'
+
+
+# Configurar o projeto
+gcloud config set project PROJECT-ID
+
+
+# Criar um Cluster: tcb-cluster
+gcloud container clusters create tcb-cluster --num-nodes 3 --zone us-central1-f
+
+
+# Atualizar o Kubeconfig para o 'tcb-cluster'
+gcloud container clusters get-credentials tcb-cluster --zone us-central1-f
+
+
+Parte 2: Deployments + Service NodePort
+
+# Verificando a configuração do K8S (config/context):
+kubectl config get-contexts
+
+mkdir nodeport
+cd nodeport
+
+# Download dos arquivos de definição (ymls) "Microservices 'Deployments' e 'Services'
+
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module4/ms-nodeport-ymls.zip
+
+unzip ms-nodeport-ymls.zip
+
+
+
+# VS Code - checando definição dos arquivos yaml
+
+# Criando Deployments e Serviços usando somente um comando:
+
+k apply -f .
+
+k get svc
+
+k get nodes -o wide
+
+# Acessando o webserver:
+
+node-external-ip:nodePort
+
+# A Regra de Firewall deve ser configurada para permitir tráfego na node port
+
+# Votando pelo smartphone
+
+# kubectl delete all --all
+
+
+TCB
+
+==================================================================================
+Hands-on GCP | Cloud Shell | Microservices: LoadBalancer
+
+# Deployment + Service LoadBalancer
+
+mkdir loadbalancer
+cd loadbalancer
+
+# Download yaml files com definições de Microservices 'Deployments' e 'Services':
+
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module4/ms-loadbalancer-ymls.zip
+
+unzip ms-loadbalancer-ymls.zip
+
+# VS Code - checando a definição de yaml files
+
+# Criando Deployments e Services usando somente um comando:
+
+k apply -f .
+
+k get svc
+
+k get svc --watch | Public IP of LB "pending"
+
+# Acessando o webserver:
+
+loadbalancer-public-ip for vote and result application.
+
+# A Regra de Firewall deve ser configurada para permitir tráfego na node port
+
+# Votando pelo smartphone
+
+# Deletando o Cluster:
+
+gcloud container clusters delete tcb-cluster --zone us-central1-f
+
+TCB

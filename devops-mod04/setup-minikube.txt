@@ -1,0 +1,121 @@
+Minikube Hands-on
+
+
+Meme Link:
+https://dev.to/otomato_io/kubernetes-deployment-hierarchy-17ek
+
+# Criar conta na GCP
+
+Link:
+
+🔗 https://cloud.google.com
+
+# Verificar informações de faturamento (Billing)
+
+# Criar um Novo Projeto: tcb-k8s  
+
+# Criar uma VM (GCE) + Script para instalar o Docker
+
+► Enable "Compute Engine API"
+
+• Name: minikube
+• Region: us-central1 | Any zone
+• Machine Type: e2-medium [ 2 vCPU, 4 GB mem ]  https://minikube.sigs.k8s.io/docs/start/
+• Boot Disk: Ubuntu 22.04 LTS (x86/64) | Size: 30 GB
+
+• Identity and API access: [x] Allow full access to all Cloud APIs
+
+• Firewall: [x] Allow HTTP traffic
+
+► Script para instalar Docker...
+
+• Management | Automation: startup script:
+
+#!/bin/bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+chmod 666 /var/run/docker.sock
+echo 'ClientAliveInterval 60' | tee --append /etc/ssh/sshd_config
+
+# CREATE IT
+
+------------------------------------------------------------------
+
+# Accessando a VM 'minikube':
+
+• Na console da GCP | GCE, clique em 'SSH'
+• Removendo informações do prompt:  
+
+vim ~/.bashrc  | Edit line 60 | Delete: '\u@\h' e ':'
+
+# Validando Instalação do Docker
+
+docker version | docker ps | docker info
+
+
+# Instalando Minikube
+
+► Passo 1: Download e Instalação do 'Kubectl'
+
+https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+
+• Download do binário do 'kubectl' [ Download the latest release ]
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+• Instalando Kubectl:
+
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+• Validando a instalação do kubectl:
+
+kubectl version
+kubectl config view
+
+► Passo 2: download e Instalação do 'Minikube'
+
+https://minikube.sigs.k8s.io/docs/start/
+
+curl -LO https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module4/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+minikube version
+
+► minikube start
+
+minikube status
+
+kubectl config view [ configurações do k8s ]
+
+kubectl get nodes   [ cluster 'minikube' created ]
+
+kubectl get pods   [ not found ]
+
+kubectl get replicaset      [ not found ]
+
+kubectl get deployments   [ not found ]
+
+kubectl get services  [ ClusterIP ]
+
+Parte 2
+
+# Minikube Dashboard
+
+minikube addons list
+minikube addons enable dashboard
+minikube dashboard --url
+
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+If Error: listen tcp 0.0.0.0:8001: bind: address already in use
+Solução: sudo killall kubectl
+
+http://PUBLIC-IP:PORT/DASHBORAD-URL
+
+GCP Firewal | Create Firewall Rule: allow-minikube
+Network: default | Targets: All Instances in the network
+Source: 0.0.0.0/0
+Protocols and ports:  Specified protocols and ports | TCP: 8001
+
+# Stop na VM
+
+TCB

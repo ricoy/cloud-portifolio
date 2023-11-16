@@ -1,0 +1,136 @@
+Módulo 4: Kubernetes Project - Solução
+
+01 - Criar um Projeto na GCP ou usar um existente
+
+# Configurar uma variável de ambiente: PROJECT_ID
+
+PROJECT_ID=tcb-k8s
+env | grep PROJECT_ID
+
+
+# Garantir que as  APIs estejam habilitadas ‘Google Kubernetes Engine’ e ‘Cloud Operations’:
+
+gcloud services enable container.googleapis.com --project ${PROJECT_ID}
+
+gcloud services enable monitoring.googleapis.com \
+cloudtrace.googleapis.com \
+clouddebugger.googleapis.com \
+cloudprofiler.googleapis.com \
+--project ${PROJECT_ID}
+
+
+02 - Download dos arquivos fonte da aplicação:
+
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-devops-cloud/pt/module4/tcb-bdc-module4-hop.zip
+unzip tcb-bdc-module4-hop.zip
+
+
+03 - Criar um cluster GKE (Standard Mode):
+
+# Configurar variáveis de ambiente para “região” e “zona”:
+
+REGION=us-central1
+ZONE=us-central1-f
+
+# Criação do Cluster ‘onlineboutique’:
+
+gcloud container clusters create onlineboutique \
+--project=${PROJECT_ID} --zone=${ZONE} \
+--machine-type=e2-standard-2 --num-nodes=4
+
+
+04 - Configurar permissões no cluster p/ kubectl:
+
+gcloud container clusters get-credentials onlineboutique --zone us-central1-f
+
+
+05 - Adicionar seu nome na linha 40 no arquivo footer.html (frontend microservice)
+
+cd tcb-bdc-module4-hop/onlineboutique/
+vi src/frontend/templates/footer.html
+
+
+06 - Utilizar o Skaffold para fazer “build & push” das  Imagens para o Google Container Registry (GCR) e fazer o ‘deploy’ dos microsserviços para o cluster do Kubernetes com apenas um comando:
+
+skaffold
+skaffold version
+
+cd tcb-bdc-module4-hop/onlineboutique
+skaffold run --default-repo gcr.io/${PROJECT_ID}
+
+
+
+# 07 - Aguardar o provisionamento dos Pods
+
+kubectl get pods
+
+
+Resultado esperado…
+
+NAME	READY	STATUS	RESTARTS	AGE
+adservice-76bdd69666-ckc5j
+1/1	Running	0	2m58s
+cartservice-66d497c6b7-dp5jr
+1/1	Running
+0	2m59s
+checkoutservice-666c784bd6-4jd22
+1/1	Running
+0	3m1s
+currencyservice-5d5d496984-4jmd7
+1/1	Running
+0	2m59s
+emailservice-667457d9d6-75jcq
+1/1	Running
+0	3m2s
+frontend-6b8d69b9fb-wjqdg
+1/1	Running
+0	3m1s
+loadgenerator-665b5cd444-gwqdq
+1/1	Running
+0	3m
+paymentservice-68596d6dd6-bf6bv
+1/1	Running
+0	3m
+productcatalogservice-557d474574-888kr
+1/1	Running
+0	3m
+recommendationservice-69c56b74d4-7z8r5
+1/1	Running
+0	3m1s
+redis-cart-5f59546cdd-5jnqf
+1/1	Running
+0	2m58s
+shippingservice-6ccc89f8fd-v686r
+1/1	Running
+0	2m58s
+
+
+08 - Acessar o frontend usando EXTERNAL_IP
+
+kubectl get service frontend-external | awk '{print $4}'
+
+
+09 - Troubleshooting: Simular um problema com o serviço ‘checkout’
+
+kubectl get deployments
+kubectl scale --replicas=0 deployment/checkoutservice
+kubectl get deployments
+kubectl scale --replicas=1 deployment/checkoutservice
+
+
+10 - Coletar a Evidência:
+
+Boutique on-line |  “Deployed by: Seu Nome”:
+
+
+11 - Limpando o Ambiente:
+
+gcloud container clusters delete onlineboutique \
+--project=${PROJECT_ID} --zone=${ZONE}
+
+
+Referências:
+
+https://github.com/GoogleCloudPlatform/microservices-demo/blob/main/README.md
+
+https://skaffold.dev/docs/
