@@ -1,0 +1,338 @@
+# 3 **| Implementação do Projeto Hands on - Solução**
+
+### Atenção!!!
+
+### Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados!
+
+## **Parte 1:** Criar uma VM e testar acesso via Cloud Shell
+
+### Criação da Virtual Machine (VM)
+
+Instance details
+
+- Resource Group: `multicloud-event`
+- Virtual machine name: `jumpserver`
+- Region: `(US)East US`
+- Image: `Ubuntu Server 22.04 LTS (free services eligible)`
+- Size: `Standard_B1s`
+
+Administrator account
+
+- Authentication type: `SSH`
+- Username: `azureuser`
+- Key pair name: `jumpserver_key`
+
+No processo de criação, você será solicitado salvar o arquivo da chave SSH, sugerimos:
+
+- Criar uma pasta: "c:\Azure\Mod. 3\" para salvar os arquivos deste módulo.
+
+Inbound port rules
+
+- Public inbound ports: `Allow selected ports`
+- Select inbound ports: `SSH (22)`
+
+> “Next” para demais configurações
+”Review + create”
+Create
+> 
+
+“Download private key”
+
+*Acesse a VM criada, explore os detalhes do recurso.*
+
+### Acessando a VM via Cloud Shell
+
+- Cloud Shell
+
+```bash
+You have no storage mounted
+Azure Cloud Shell requires an Azure file share to persist files.
+```
+
+> Create storage
+> 
+
+```bash
+**ls
+cat /etc/*rel***
+```
+
+- Upload do arquivo da sua chave SSH.
+
+```bash
+**ls -la jumpserver_key.pem
+ssh -i jumpserver_key.pem azureuser@your-vm-public-ip**
+```
+
+> WARNING: UNPROTECTED PRIVATE KEY FILE!
+Permissões muito "abertas".
+> 
+
+```
+**chmod 400 jumpserver_key.pem
+ls -la jumpserver_key.pem
+
+ssh -i jumpserver_key.pem azureuser@your-vm-public-ip
+
+cat /etc/*rel***
+```
+
+## Parte 2 - Atualizar a VM, Instalar Docker, Docker Compose e Testar a Aplicação
+
+### Atualizar a Lista de Pacotes da VM
+
+`**sudo apt update**`
+
+### Instalar Unzip / Docker / Docker Compose
+
+```
+**sudo apt install unzip
+sudo apt install docker.io -y**
+```
+
+```
+**sudo curl -L https://github.com/docker/compose/releases/download/1.21.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose**
+```
+
+```
+**sudo chmod +x /usr/local/bin/docker-compose
+
+sudo systemctl start docker
+
+docker -v**
+```
+
+### Baixar e Descompactar conteúdo da Aplicação
+
+**Opção 1**
+
+Baixar o arquivo para sua máquina, fazer upload para o Cloud Shell e transferir para a VM
+
+[tcb-voting-app.zip](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/4e5013af-8dae-4ce5-890b-bf49a0a3e582/tcb-voting-app.zip)
+
+No Cloud Shell, execute o comando abaixo:
+
+`**scp -i jumpserver_key.pem tcb-voting-app.zip [azureuser@your-vm-public-ip](mailto:azureuser@20.121.47.52):/home/azureuser**`
+
+**Opção 2**
+
+Baixar o arquivo direto na VM:
+
+```
+**wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-microsoft-azure/mod3/tcb-voting-app.zip
+
+unzip tcb-voting-app.zip**
+```
+
+### Subir e Validar a aplicação com Docker Compose
+
+```
+**cd tcb-voting-app
+ls -ltr
+
+nano docker-compose.yaml
+
+sudo docker-compose up -d**
+```
+
+[ Explicação Docker Compose ]
+
+```
+Creating tcb-vote-back  ... done
+Creating tcb-vote-front ... done
+```
+
+### Listando as Imagens
+
+`**sudo docker images**`
+
+```
+thecloudbootcamp/tcb-vote    latest
+tiangolo/uwsgi-nginx-flask   python3.6
+thecloudbootcamp/redis       6.0.8
+```
+
+### Listando os Containers
+
+`**sudo docker ps -a**`
+
+```
+thecloudbootcamp/redis:6.0.8      tcb-vote-back
+thecloudbootcamp/tcb-vote:latest  tcb-vote-front
+```
+
+### Configurar porta 8080 para acesso à aplicação
+
+- VM, Networking, Network settings
+- `Create port rule`
+- `Inbound port rule`
+- Destination port ranges: `8080`
+
+> Add
+> 
+
+### Teste de Acesso à Aplicação
+
+- [http://your-vm-public-ip:8080](http://your-vm-public-ip:8080/)
+
+Concluímos até esse ponto de que os arquivos para fazer deploy da aplicação estão funcionando conforme esperado. Faremos nos próximos passos, o deploy usando o serviço do AKS!
+
+## Parte 3 - Instalar Azure CLI, Criar e Configurar ACR/AKS
+
+### Stop na aplicação que subimos para validação com Docker Compose
+
+`sudo docker-compose down`
+
+### Instalar Azure CLI
+
+```bash
+**curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+az -v**
+```
+
+...enquanto instala, validar ACR e AKS criados.
+
+### Login Azure CLI
+
+`sudo az login`
+
+> Seguir passos para autenticação via browser.
+> 
+
+### Criar Azure Container Registry (ACR)
+
+```
+**sudo az group create --name tcb-vote --location eastus**
+
+**sudo az acr create --resource-group tcb-vote --name tcbherbertpereira --sku Basic**
+```
+
+```
+Caso essa mensagem seja, apresentada, não se preocupe:
+
+Resource provider 'Microsoft.ContainerRegistry' used by this operation is not registered. We are registering for you. Registration succeeded.
+```
+
+Copie o “Login Server” do seu ACR:
+
+"loginServer": "**tcbherbertpereira.azurecr.io**",
+
+### Login no Azure Container Registries
+
+`**sudo az acr login --name tcbherbertpereira**`
+
+### Listar Azure Container Registries
+
+```bash
+**sudo az acr list --resource-group tcb-vote --query "[].{acrLoginServer:loginServer}" --output table**
+```
+
+### Configurar Tag e Fazer upload da imagem para o ACR
+
+```bash
+**sudo docker images
+
+sudo docker tag thecloudbootcamp/tcb-vote:latest tcbherbertpereira.azurecr.io/tcb-vote:latest
+
+sudo docker images
+
+*Upload*
+
+sudo docker push tcbherbertpereira.azurecr.io/tcb-vote:latest
+
+Listar images do Azure Container Registry (ACR):
+
+sudo az acr repository list --name tcbherbertpereira.azurecr.io --output table**
+
+```
+
+### Criar Cluster no Azure Kubernetes Service (AKS)
+
+```bash
+**sudo az aks create \
+--resource-group tcb-vote \
+--name AKSClusterTCB \
+--node-count 1 \
+--generate-ssh-keys \
+--attach-acr tcbherbertpereira**
+```
+
+[ Pause: 5 ~ 10 min ]
+
+### Instalar o ‘Kubectl’
+
+`**sudo az aks install-cli**`
+
+### Configurar as credenciais para logar no Cluster
+
+`**sudo az aks get-credentials --resource-group tcb-vote --name AKSClusterTCB**`
+
+```bash
+Merged "AKSClusterTCB" as current context in /root/.kube/config
+```
+
+### Testar as permissões
+
+`**sudo kubectl get nodes**`
+
+### Editar as Informações para o Deployment
+
+`**sudo nano tcb-vote-plus-redis.yaml**`
+
+```bash
+Editar seção:
+kind: Deployment
+...
+Containers:
+name: tcb-vote-front
+image: thecloudbootcamp/tcb-vote:latest
+
+**Para:**
+image: **tcbherbertpereira.azurecr.io**/tcb-vote:latest
+```
+
+### Deploy da Aplicação
+
+`**sudo kubectl apply -f tcb-vote-plus-redis.yaml**`
+
+### Obter IP Público do LB
+
+`**sudo kubectl get service --watch**`
+
+`**sudo kubectl get service**`
+
+### Mais comandos ‘kubectl’
+
+```bash
+**sudo kubectl get nodes
+sudo kubectl get pods
+sudo kubectl get all**
+```
+
+### Testar Acesso à Aplicação via IP Público do LB - Porta 80
+
+### Criação QR Code
+
+https://www.the-qrcode-generator.com/
+
+## Evidências do Projeto
+
+- IP do Load Balancer (Cluster/Services)
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/f2d73974-b291-4d3b-8a11-25c44bbeb1e6/Untitled.png)
+
+- Acesso à aplicação com IP do LB:
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/4cf8eba2-669c-4db5-862a-a14f0ed7d22d/Untitled.png)
+
+### Remoção dos Recursos Criados
+
+Excluir os Resources Groups:
+
+- `multicloud-event`
+- `tcb-vote`
+
+***Um ‘RG’ extra foi criado, e será excluído automaticamente!***
+
+***TCB*** 🚀
