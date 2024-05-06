@@ -1,0 +1,192 @@
+# Módulo 4 **| Implementação do Projeto Hands on - Solução**
+
+### Atenção!!!
+
+### Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados!
+
+### Criação Virtual Network (VNET)
+
+- Resource Group: `tcb-mod4`
+- Virtual network name: `VNetBootcamp`
+- Region: `(US)East US`
+
+Next, Next
+
+**IP Address**
+
+Atenção:
+
+*Mantenha o Range IP e Subnet definido por default!*
+
+Review + Create | Create
+
+### Criação Virtual Machine (VM)
+
+Instance details
+
+- Resource Group: `tcb-mod4`
+- Virtual machine name: `app01`
+- Region: `(US)East US`
+- Image: `Ubuntu Server 22.04 LTS (free services eligible)`
+- Size: `Standard_B1s`
+
+- Key pair name: `app01_key`
+- Public inbound ports: `none`
+
+**Networking**
+
+- Public IP: `none`
+
+Review + create | Create
+
+“Download private key”
+
+### Criar um Virtual Network Gateways
+
+- Name: `vpnbootcamp`
+- SKU: `VpnGw1`
+- Generation: `Generation1`
+- Virtual Network: `VNetBootcamp`
+
+***Em alguns casos, é necessário um certo tempo para que a VNET criada seja contemplada na criação do Virtual Network Gateway.***
+
+**Public IP address**
+
+- Public IP address name: `vpnbootcamp-ip`
+- Enable active-active mode: `Disabled`
+- Configure BGP: `Disabled`
+
+Review + create | Create
+
+[ Pause ]
+
+~20 minutos para provisionar!!! ⏱☕
+
+Após criação, verifique status: `Updating`
+
+Nos passos seguintes, precisamos criar os certificados que vão garantir a conexão segura, confiável e criptografada tanto do lado do Cliente, quanto do Endpoint (Azure - VPN Gateway).
+
+Já criamos e disponibilizamos os certificados!
+
+Segue link da documentação:
+
+[Generate and export certificates for P2S: PowerShell - Azure VPN Gateway | Microsoft Learn](https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-certificates-point-to-site#clientexport)
+
+### **Baixar Certificados**
+
+Sugestão: criar uma pasta “c:\azure\mod4”, baixar e descompactar os arquivos:
+
+Download dos certificados:
+
+[tcb-azure-mod4-certs-PT.zip](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/9b9d1dbf-2f39-4de1-8273-da73c53bc213/tcb-azure-mod4-certs-PT.zip)
+
+### Configurar uma VPN P2S
+
+**Virtual Network Gateways**
+
+**Settings /** Point-to-site-configuration
+
+Point-to-site is not configured: `Configure Now`
+
+- Address pool: `172.16.0.0/24`
+- Tunnel type: `IKEv2 and SSTP (SSL)`
+- Authentication type: `Azure certificate`
+
+**Root certificates**
+
+Name: `P2SRootCert`
+
+Public Certificate data:
+
+```bash
+MIIC5zCCAc+gAwIBAgIQLxahT7hRFK1K55uw4M+xezANBgkqhkiG9w0BAQsFADAW
+MRQwEgYDVQQDDAtQMlNSb290Q2VydDAeFw0yMzExMjQwMDAxMDlaFw0yNTExMjQw
+MDEwNTBaMBYxFDASBgNVBAMMC1AyU1Jvb3RDZXJ0MIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEAxwNjyYzDcDLJnK1iIPJ4gRuc034CCiTZqrapj5dVrvv1
+Io+MXvIoRaxwDcWwbTxjSuWrXfBh/A5sqQ+p7yHSQCsTgRJAApdccPCfudGfVRag
+Jgz8zugs0l3BFSEwogH09Mu5smIbZ5srpOo0fH9nLLyIm6Y0iTuN9OSVDgNW4Wv5
+MEkhiK7iG6evlAVPsBdEd5R6gaqC1c4mNMGDAln1pQJQnJFPwH0yqKxco2BlCN7Y
+VTMWFFhVrG/LNCLXjCeYRImgMGjij8nV4pxpuAHbXX3JCz+rh0yHy6w1ddbvJcwd
+NJFMKwJj+4nkyrXQyxQH8xqEklUzcNsmSzU4N3jMzQIDAQABozEwLzAOBgNVHQ8B
+Af8EBAMCAgQwHQYDVR0OBBYEFGoMS7CvGq+4ewgOWjqiF38tFTjLMA0GCSqGSIb3
+DQEBCwUAA4IBAQBUSgXbuYJa37kElIBK3s3RQIBWfS+n+Bv1kGcj6K7hFiBruuEB
+nPdyHTw3lh4IiO02oZ/BmekSclyISgNn8hxH4s4jLMXJptG/Uh/yKbOOaq0OHWoH
+KB3SBpWlm8qHf5KERI6yL1JKlQvFf/5svryCsEmxc604Tk8dkqBALkG7QnJQmaRl
+7CMouRYjlgqFPr5P6nmTkIdOMj3z7C59Azq4/p5BxCHSrsP37fz0NMWlqLbOjfSI
+mSt9YfZdhMYRbmGjc7eP/PqJs6YKVLkpOZkP75eJGjoiNg1Mh7qyj/nHMXTfArtq
+d2d8mt3OxALkeNn6fZrZGiJwkTR7PVK2UvzT
+```
+
+***Save***
+
+[ Pause… ]
+
+***Download VPN Client***
+
+`vpnbootcamp.zip`
+
+***Caso você não esteja usando o Windows, ou usando uma versão mais antiga, você pode criar uma VM Windows 10/11 para uma melhor experiência ao testar a VPN!***
+
+### Instalar Certificado Cliente
+
+`clientcert.pfx`
+
+- Current User
+- Next
+- Senha: `azurebootcamp`
+- Next…Finish!
+
+### Instalar o utilitário da VPN
+
+Descompactar o arquivo **`vpnbootcamp.zip`**
+
+C:\Azure\mod. 4\WindowsAmd64
+
+VpnClientSetupAmd64.exe
+
+> **win+x** / Network Connections / VPN: `VNetBootcamp`
+> 
+
+> Connect
+> 
+
+### Testar conexão privada
+
+**Prompt de Comando do Windows**
+
+`ping 10.0.0.4 (ip privado da VM)`
+
+### Instalar Apache na VM App01
+
+**Prompt de Comando do Windows**
+
+**`ssh -i app01_key.pem azureuser@your-vm-PRIVATE-ip`**
+
+Erro:  `WARNING: UNPROTECTED PRIVATE KEY FILE!` 
+`Permissions for 'app01_key.pem' are too open.`
+
+Solução:
+
+```bash
+**icacls "app01_key.pem" /Inheritance:r
+icacls "app01_key.pem" /Grant:r "%Username%":"(R)"**
+```
+
+**`icacls`** é o substituto do **cacls** (Change Access Control Lists), ferramenta de linha de comando que permite alterar permissões (ACL) em arquivos ou diretórios.
+
+**`ssh -i app01_key.pem azureuser@your-vm-PRIVATE-ip`**
+
+```bash
+**sudo apt update
+sudo apt install apache2 -y
+sudo systemctl restart apache2.service**
+```
+
+### Testar acesso ao Apache via IP Privado da VM
+
+http://your-vm-PRIVATE-ip
+
+### Monitorar usuários conectados
+
+Virtual Network Gateway
+Monitoring /  Point-to-site sessions
