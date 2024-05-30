@@ -1,0 +1,186 @@
+Módulo 7 | Implementação do Projeto Hands on - Solução
+Atenção!!! 
+Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados! 
+Implementação de uma Arquitetura Serverless para um website em vários ambientes (teste/QA/produção), Totalmente Automatizada, utilizando Azure DevOps Repos & Pipelines (CI/CD).
+Pré-requisito: 
+Criação Azure DevOps Organização;
+Criação Projeto na Azure DevOps Organização;
+Solicitação do Azure DevOps Parallelism.
+Parte 01: Criação e Configuração das Storage Accounts para cada ambiente: Teste, QA, Produção
+Parte 02: Criação das Pipelines CI/CD
+Parte 03: Testar e Validar as Pipelines
+Parte 01 - Criação e Configuração das Storage Accounts
+Criação de uma Storage Account para cada ambiente: test, QA e prod
+Resource Group: tcb-devops
+Region: East US
+test: tcbmod7test
+QA: tcbmod7qa
+prod: tcbmod7prod
+Habilitar Static Website e Configurar index.html como Home Page
+Antes, valide o conteúdo atual dos containers das storage accounts! 
+Data Storage | Containers
+Data Management | Static Website | Enabled
+Index document name: index.html
+Save and Copy ‘Primary endpoint’
+
+test: https://tcbmod7test.z13.web.core.windows.net/
+	QA: https://tcbmod7qa.z13.web.core.windows.net/
+prod: https://tcbmod7prod.z13.web.core.windows.net/
+
+​
+Azure DevOps Organizations
+Habilitar “Classic Build and Release Pipelines”
+Acesse sua organização
+Organization settings
+Pipelines | Settings | General
+
+Acesse o Projeto Criado: website01
+Gerar Credenciais para Processo de Push no Azure Repos
+Repos | Generate Git Credentials
+uhtvfo5sdt7sj7tox5ktkff5j6dcjgxbhixkmayu42mc7ywslpaa
+​
+Download Website Files
+Cloud Shell
+curl -O https://tcb-bootcamps.s3.amazonaws.com/bootcamp-microsoft-azure/en/mod7-azuredevops.zip
+unzip mod7-azuredevops.zip
+cd azuredevops
+​
+Pushing Website Files to Azure Repos
+Cloud Shell
+# Copy these commands from Repos: "Push an existing repository from command line"
+
+git remote add origin https://tcb-mod7@dev.azure.com/tcb-mod7/website01/_git/website01
+
+error: git remote origin already exists.
+Solution: 
+git remote remove origin
+
+git push -u origin --all
+​
+Valide os arquivos no Azure Repos: Repos | Files
+Fim da Parte 01.
+Parte 02 - Criação das Pipelines CI/CD
+Criação Pipeline - CI (Contínuos Integration)
+Pipelines | Pipelines | Create Pipeline
+Use the classic editor to create a pipeline without YAML.
+Select a source: Azure Repos Git
+Continue / Empty Job
+Adicionando as Tarefas (Jobs) da Pipeline CI
+Task: Zipping Files
+Name: website01-CI
+Agent Job 1 +
+Search for: Archive files Add
+Selecione a tarefa adicionada e altere o ‘Display name’
+Display name: Zip files
+Root folder or file to archive: ... selectfiles folder
+Task: Publishing Files
+Agent Job 1 +
+Search for: Publish build artifacts Add
+Selecione a tarefa adicionada e altere o ‘Display name’
+Display name: Artifacts Publish
+ 🔽 Save (Do not Click on “Save & Queue”)
+Save
+Trigger
+[ ☑️ ] Enable continuous integration
+ 🔽 Save (Do not Click on “Save & Queue)
+Save
+Criação Pipeline - CD (Contínuos Deployment)
+Pipelines | Releases | New pipeline
+Empty job
+Rename from ‘New release pipeline’ to website01-CD
++ Add an artifact
+Build
+Project: website01
+Source (build pipeline): website01-CI
+Add
+⚡ Continuous deployment trigger
+[ ☑️ ] Enabled
+Creates a release every time a new build is available
+Adicionando as ‘Stages’ da Pipeline CD
+Stage: Test 
+Stage 1 >> Stage name: Test 
+Task: Extracting Files
+1 job, 0 task
+Agent Job +
+Search for: Extract files Add
+Selecione a tarefa adicionada e altere o ‘Display name’
+Display name: Extract files
+Archive file patterns: **/$(Build.BuildId).zip
+Destination folder: $(Build.DefaultWorkingDirectory)/$(Build.BuildId)
+Task: Upload files to Azure Blob with Azure CLI
+Agent Job +
+Search for: Azure CLI Add
+Selecione a tarefa adicionada e altere o ‘Display name’
+Display name: Upload files to Azure Blob
+Azure Resource Manager connection: Azure Subscription | Authorize
+Talvez seja solicitado fazer login na Azure
+Script Type: Shell
+Script location: Inline script
+az storage blob upload-batch --account-name <YOUR-STORAGE-ACCOUNT_NAME-TEST-ENV> --destination "\$web" --source ./files --overwrite
+​
+\$web é uma convenção usada no Azure Blob Storage para indicar o contêiner que hospeda conteúdo web estático.
+Working Directory: $(Build.DefaultWorkingDirectory)/$(Build.BuildId)
+Save / OK
+Stage: QA 
+Vamos ‘clonar’ o stage ‘Test!
+Stage Test | Clone | Clone of Test >> QA
+1 job, 2 task
+Task Upload files to Azure Blob
+az storage blob upload-batch --account-name <YOUR-STORAGE-ACCOUNT_NAME-QA-ENV> --destination "\$web" --source ./files --overwrite
+​
+Save / OK
+Stage: Prod 
+Vamos ‘clonar’ o stage ‘QA’!
+Stage Test | Clone | Clone of Test >> Prod
+1 job, 2 task
+Task Upload files to Azure Blob
+az storage blob upload-batch --account-name <YOUR-STORAGE-ACCOUNT_NAME-PROD-ENV> --destination "\$web" --source ./files --overwrite
+​
+Save / OK
+Habilitar Aprovação para Deploy em Ambiente Produtivo
+Click on Pipeline
+From the Prodstage, Enable  to get approval before deploying to production.
+⚡ Pre-deployment conditions
+[ ☑️ ] Enabled
+Approvers: search for your azure user/email address
+Save / Ok
+Fim da Parte 02.
+Parte 03 - Testar e Validar as Pipelines
+Executando a Pipeline - CI (Contínuos Integration)
+Pipelines | Pipelines | website01-CI
+Run pipeline 
+Run
+Acompanhe os logs / Monitore a Pipeline
+Click on Agent job 1
+Você pode obter alguma mensagem sobre indisponibilidade dos agentes para executar a pipeline.
+Acquiring an agent from the cloud:
+This agent cloud does not support more specific status information.
+​
+Você pode tentar com outros agentes: Windows 2019, Windows 2022, Windows Latest!
+Também é possível que em algum “stage” o agent não inicie o processo, você pode cancelar e re-executar!
+Ao final do processo da execução da Pipeline-CI, uma ‘release’ será criada, dando início a execução da Pipeline-CD.
+Stage: Prod
+Necessita Aprovação!
+Valide as URLs das Storage Accounts | Static Website
+Alterando o Website
+Cloud Shell
+cd azuredevops/
+vi files/index.html
+
+# Press: 'Insert' Key
+# Line 33: Congratulations >> Good Job
+# Press: 'Esc' Key
+# Type: ':x'
+# Press: 'Enter' Key
+
+cat files/index.html | grep -i Good
+
+git add files/index.html
+
+git config --global user.name "Your Name"
+git config --global user.email "Your Azure Email Account" 
+
+git commit -m "changing index.html"
+git push -u origin --all
+
+Repos | Credentials
