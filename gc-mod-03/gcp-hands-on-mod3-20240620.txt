@@ -1,0 +1,423 @@
+# Módulo 3 **| Implementação do Projeto Hands on - Solução**
+
+### Atenção!!!
+
+### Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados!
+
+Parte 01: **Criar e Configurar Credenciais para o Terraform**
+
+Parte 02: **Criar ‘SSH Keys’, Executar Terraform e Testar Conexão**
+
+### Pré-requisito
+
+- Criação de Conta AWS
+
+## Parte 01 - Criar e Configurar Credenciais para o Terraform
+
+### Criação Projeto na GCP
+
+- Nome: `tcb-gcp-aws`
+
+Valide que o novo projeto esteja associado à uma Conta de Faturamento (Billing)
+
+- Billing | Billing Management | Account Management
+- Projects linked to this billing account
+
+### Habilitar API Compute Engine e **Network Management API**
+
+- APIs & Services | Enable APIs & service
+    - Compute Engine API            - Criação de Compute Engine
+    - Network Management API   - Teste de Conectidade
+
+### **GCP - Cloud Shell**
+
+- Short key: `g`+ `s`
+
+### Limpando o Cloud Shell
+
+```bash
+Verifique se há arquivos pessoais no diretório principal:
+**ls -a $HOME**
+
+Removendo todos os arquivos:
+**sudo rm -rf $HOME**
+
+No menu do Cloud Shell, '...', clique em 'Reiniciar'.
+
+Isso provisiona uma nova VM e restaura o diretório principal para o estado padrão.
+Em alguns caso, feche o Cloud Shell e inicie uma nova sessão!
+```
+
+Se necessário, configure o projeto (id) na sessão do Cloud Shell
+
+```bash
+**gcloud config set project PROJECT_ID
+
+env
+env | grep PROJECT
+echo $DEVSHELL_PROJECT_ID**
+```
+
+- **Download / Unzip Arquivos do Projeto:**
+
+```bash
+**curl -O https://storage.googleapis.com/bootcamp-gcp-public/hands-on-tcb-bmc-gcp.zip
+unzip hands-on-tcb-bmc-gcp.zip**
+```
+
+- **Adicionar Permissão de Execução nos Arquivos (.sh):**
+
+```bash
+**cd hands-on-tcb-bmc-gcp
+ls -la
+chmod +x *.sh
+ls -la**
+```
+
+### Criação Credenciais para o Terraform na GCP
+
+Terraform necessita da credenciais para criar recursos nas Clouds.
+
+**Criação de uma Key JSON da Service Account (SA) Default Compute Engine**
+
+> Service Account Compute Engine Default é uma conta de serviço que é automaticamente atribuída a todas as instâncias do Google Compute Engine (GCE) quando elas são criadas, a menos que uma conta de serviço diferente seja especificada explicitamente durante a criação da instância. Essa conta de serviço é usada para autenticar a instância do GCE com outros serviços da GCP. É uma prática recomendada usar contas de serviço com permissões mínimas necessárias para reduzir o risco de segurança.
+> 
+
+- IAM & Admin | Service Accounts
+- Selecione: `xxxxxxxxxxx-compute@developer.gserviceaccount.com`
+    - Name: `Compute Engine default service account`
+- KEYS | ADD KEY | Create new key
+- Key type: `JSON`
+
+*Create* 
+
+Sugestão: criar uma pasta `C:\GCP\Mod 03` para salvar os arquivos do módulo.
+
+### Configurar as Credenciais da GCP
+
+- Upload da Key JSON para o Cloud Shell.
+
+```bash
+**ls -l
+ls -l ~
+
+Sintaxe
+./gcp_set_credentials.sh ~/file.json**
+```
+
+Resultado esperado:
+
+```bash
+Created /home/**your-gcp-user**/.config/gcloud/credentials_multiclouddeploy.json from /home/**your-gcp-user**/**your-sa-key.json**.
+Updated gcp_credentials_file_path in /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars.
+```
+
+Valide que o caminho do arquivo da KEY JSON foi devidamente configurado:
+
+```bash
+cat /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars
+
+cat /home/**your-gcp-user**/.config/gcloud/credentials_multiclouddeploy.json
+```
+
+![aws-transparent-icon.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/fc59bbb5-e851-4a2a-9232-922127dac193/aws-transparent-icon.png)
+
+### **Selecione a Região de Oregon (us-west-2)**
+
+- Region: `Oregon`
+
+Por que selecionar a Região Oregon?
+
+aws_variable.tf
+
+```bash
+variable "aws_region" {
+  description = "Default to Oregon region."
+  default     = "us-west-2"
+}
+```
+
+### Criação de Usuário Programático
+
+Finalidade: acesso via linha de comandos para interação com recursos da AWS!
+
+```
+- IAM, Users, Create user
+- User name: tcb-aws-gcp-automation
+
+- [ ] Provide user access to the AWS Management Console - optional
+
+Next
+
+- Permissions options
+- Attach policies directly: **AdministratorAccess**
+
+Next
+Create user
+```
+
+## Criação das Access Keys do Usuário Programático:
+
+```
+- Acesse o usuário criado: tcb-aws-gcp-automation
+- Security credentials
+- Access keys, Create access key
+- Use case: (*) Command Line Interface (CLI)
+- [✔] I understand the above recommendation and want to proceed to create an access key.
+
+Next
+Create access key
+
+* Access key: *****
+* Secret access key: *****
+
+- **Download .csv file
+
+	REQUIREMENT: The access key file name must be 'accessKeys.csv'**
+
+- Done
+
+TIP: You can deactive/delete or create new one!
+```
+
+Abra o arquivo ‘accessKeys.csv’ e veja seu conteúdo!
+
+### Configurar as Credenciais da AWS
+
+- Upload do arquivo ‘accessKeys.csv’ para o Cloud Shell.
+
+```bash
+**ls -l
+ls -l ~
+./aws_set_credentials.sh ~/accessKeys.csv**
+```
+
+Resultado esperado:
+
+```bash
+Created backup (/home/**your-gcp-user**/.aws/credentials_multiclouddeploy.bak).
+Created /home/**your-gcp-user**/.aws/credentials_multiclouddeploy.
+Updated aws_credentials_file_path in /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars.
+```
+
+Valide que o caminho do arquivo da KEY JSON foi devidamente configurado:
+
+```bash
+cat /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars
+
+cat /home/**your-gcp-user**/.aws/credentials_multiclouddeploy
+```
+
+### Download Terraform
+
+```bash
+**ls ~/terraform**            No such file or directory
+
+**./get_terraform.sh**
+
+**ls ~/terraform**
+```
+
+### Configurar o Projeto GCP no Arquivos de Configuração do Terraform
+
+```bash
+# make sure you're in the correct GCP project
+**gcloud config set project PROJECT_ID**
+
+	**./gcp_set_project.sh**
+```
+
+Resultado esperado:
+
+```bash
+Updated gcp_project_id in /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars
+```
+
+Valide que o caminho do arquivo da KEY JSON foi devidamente configurado:
+
+```bash
+cat /home/**your-gcp-user**/**your-gcp-project-id**/terraform/terraform.tfvars
+
+```
+
+Fim da Parte 01.
+
+## Parte 02 - Criar ‘SSH Keys’, Executar Terraform e Teste Conexão
+
+### Criação de um Par de Chaves SSH
+
+Necessário para criação e acesso à VMs que serão criadas no processo.
+
+**Cloud Shell**
+
+```bash
+# Getting your username
+**whoami**
+
+# Generating a SSH Key Pairs (Public and Private)
+**ls -la ~**
+**ssh-keygen -t rsa -f ~/.ssh/vm-ssh-key -C YOUR-USERNAME**
+
+**Your identification has been saved in /home/your-username/.ssh/vm-ssh-key
+Your public key has been saved in /home/your-username/.ssh/vm-ssh-key.pub
+
+ls -la ~**
+
+# Changing SSH Key Permissions
+**ls -la ~/.ssh/vm-ssh-key
+chmod 400 ~/.ssh/vm-ssh-key
+ls -la ~/.ssh/vm-ssh-key**
+```
+
+## Importar Chave Pública para GCP
+
+- Compute Engine | Settings | Metadata | SSH KEYS
+
+```bash
+**gcloud compute config-ssh --ssh-key-file=~/.ssh/vm-ssh-key**
+```
+
+Resultado esperado:
+
+```bash
+Updating project ssh metadata...working.Updated [https://www.googleapis.com/compute/v1/projects/cd-k8s-gcp].                                  
+Updating project ssh metadata...done.                                                                                                         
+WARNING: No host aliases were added to your SSH configs because you do not have any running instances. 
+```
+
+Valide a importação da chave:
+
+- Compute Engine | Settings | Metadata | SSH KEYS
+
+Em alguns casos, o terminal solicita realizar um processo de autenticação.
+
+Se, for o caso, o comando abaixo deve ser executado:
+
+```bash
+**gcloud auth login**
+```
+
+![aws-transparent-icon.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/fc59bbb5-e851-4a2a-9232-922127dac193/aws-transparent-icon.png)
+
+### Importar Chave Pública para AWS
+
+Download do arquivo da chave
+
+```bash
+PATH:
+**/home/[YOUR-USERNAME]/.ssh/vm-ssh-key.pub
+
+Example:
+/home/tcbchallengeday/.ssh/vm-ssh-key.pub**
+```
+
+AWS | EC2 Dashboard | Network & Security | Key Pairs
+
+- Actions: `Import Key Pair`
+- Name: `vm-ssh-key`
+- Browse: `vm-ssh-key-pub`
+
+Import key pair
+
+### Executando Terraform
+
+```bash
+Make sure to be inside of `hands-on-tcb-bmc-gcp` directory!
+
+cd terraform
+```
+
+Antes de executarmos o Terraform, vamos analisar o arquivo `main.tf`!
+
+```bash
+# Initialize the directory with Terraform files and install the providers/plugins.
+terraform init
+
+# It checks the syntax/configuration of your Terraform files.
+terraform validate
+
+# Review the infrastructure changes desired: create, modify or destroy
+terraform plan
+
+Plan: 41 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + aws_instance_external_ip = (known after apply)
+  + aws_instance_internal_ip = "172.16.0.100"
+  + gcp_instance_external_ip = (known after apply)
+  + gcp_instance_internal_ip = "10.88.0.100"
+
+# Apply the changes planning: create, modify or destroy
+terraform apply
+
+# It displays the outputs (resources properties) defined in your configuration files.
+terraform output
+```
+
+### Validando a Criação dos Recursos
+
+- **VPC** (AWS  e GCP)
+- **EC2** (AWS) / GCE (GCP)
+- AWS - VPC / VPN
+    - **Virtual private gateways**
+    - **Customer Gateways (AWS)**
+- GCP - Network Connectivity
+    - **VPN (Cloud VPN Tunnels/Gateways)**
+    - **Cloud Routers**
+
+### Teste de Conectividade: Ping
+
+- GCP | GCE: SSH na VM `tcb-gcp-vm-01`
+
+```bash
+**ip a**
+inet 10.88.0.100/32
+
+ping 172.16.0.100  [private ip of AWS EC2 instance]
+
+ping 172.16.0.100 c4
+
+64 bytes from 172.16.0.100: icmp_seq=1 ttl=63 time=19.5 ms
+64 bytes from 172.16.0.100: icmp_seq=2 ttl=63 time=17.3 ms
+64 bytes from 172.16.0.100: icmp_seq=3 ttl=63 time=17.2 ms
+64 bytes from 172.16.0.100: icmp_seq=4 ttl=63 time=17.4 ms
+
+A avaliação da latência é feita pelos valores de tempo (`time`) 
+apresentados após cada sequência de ping. 
+No resultado acima, a latência média é de aproximadamente 17,85 milissegundos (ms). 
+
+Este valor representa o tempo que os pacotes ICMP levou para ir da GCP/GCE,
+para o endereço IP 172.16.0.100 (AWS/EC2) e voltar.
+
+Quanto menor o valor, melhor é a latência da conexão. 
+
+Em geral, latências abaixo de 100 ms são consideradas boas para a maioria das aplicações.
+```
+
+### Teste de Conectividade: Connectivity Tests
+
+Network Intelligence | Connectivity Tests
+
+- Test name: `tcb-aws-gcp`
+- Source: `vm-instance` | `tcb-gcp-vm01`
+- Destination: `172.16.0.100`
+
+Create
+
+View
+
+## Evidência
+
+- Resultado do Teste de Conectividade
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/c6ac2723-5396-40c9-b78f-12b3fe39aa09/Untitled.png)
+
+### Exclusão dos Recursos
+
+```bash
+**terraform destroy**
+
+Destroy complete! Resources: 41 destroyed.
+```
+
+***TCB*** 🚀
