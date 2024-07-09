@@ -1,0 +1,457 @@
+# Módulo 4 **| Implementação do Projeto Hands on - Solução** (m2c)
+
+**LIFT & SHIFT + MODERNIZAÇÃO DE APLICAÇÃO** **USANDO O SERVIÇO DE MIGRATE TO CONTAINER (M2C)** 
+
+Parte 01: **Migração “Lift and Shift”**
+
+Parte 02: **Modernização da Aplicação com Migrate to Containers (m2c)**
+
+Parte 03: **Deployment do Workload Migrado**
+
+### **GCP - Cloud Shell**
+
+- Short key: `g`+ `s`
+
+### Limpando o Cloud Shell (opcional)
+
+```bash
+Removendo todos os arquivos:
+**sudo rm -rf ***
+```
+
+# Parte 1 - Migração “Lift and Shift”
+
+### Criação de um Projeto e Habilitação das API’s Necessárias
+
+Nome: `tcb-m2c`
+
+Valide que o novo projeto esteja associado à uma Conta de Faturamento (Billing)
+
+- Billing | Billing Management | Account Management
+- Projects linked to this billing account
+
+Habilitar as seguintes APIs:
+
+- APIs & Services | Enable APIs & service
+    - **`Compute Engine API`**
+    - **`Kubernetes Engine API`**
+    - **`Cloud Resource Manager API`**
+
+# **Etapas do processo de Lift & Shift**
+
+### **Cloud Shell**
+
+- Configurar id do Projeto, Zona padrão e Criar Regras de Firewall
+
+```bash
+# Configurar id do projeto
+**gcloud config set project PROJECT_ID**
+
+# Definir a zona de compute us-west1-a como padrão
+**gcloud config set compute/zone us-west1-a**
+
+# Adicionar as regras para permitir o protocolo http e ssh.
+**gcloud compute firewall-rules create allow-ssh --network default --allow tcp:22 \
+--source-ranges 0.0.0.0/0
+
+gcloud compute firewall-rules create allow-http --network default --allow tcp:80 \
+--source-ranges 0.0.0.0/**0
+
+O passo de criação da regra de firewall '**allow-ssh**' pode ser opcional,
+se no projeto conter Regras de Firewall criadas pela VPC Default.
+Como por exemplo:
+
+- default-allow-ssh - que já permite acesso à porta 22 (SSH)!
+```
+
+- **Criação GCE para as Etapas de Lift & Shift**
+
+```bash
+**gcloud compute instances create app-01-vm --project=$DEVSHELL_PROJECT_ID \
+--zone=us-west1-a --machine-type=n1-standard-1 --subnet=default \
+--scopes="cloud-platform" --tags=http-server,https-server \
+--image=ubuntu-2204-jammy-v20240319 --image-project=ubuntu-os-cloud \
+--boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=app-01-vm**
+```
+
+### Console | SSH **`app-01-vm`**
+
+- **Conectar na GCE via Console | SSH**
+    - **Executar os Comandos:**
+
+```bash
+sudo apt update && sudo apt install apache2 unzip -y
+cd /var/www/html
+ls
+sudo mv index.html index.html.bkp
+sudo curl -O https://storage.googleapis.com/bootcamp-gcp-en/hands-on-compute-website-files-en.zip
+sudo unzip hands-on-compute-website-files-en.zip
+sudo chmod 644 *
+```
+
+### Testar Acesso a Aplicação
+
+- **Copiar o ‘External IP’ da GCE e acessar via browser**
+    
+    ***Processo Lift and Shift OK!***
+    
+
+### Feche a conexão SSH da vm `app-01-vm`
+
+# Parte 2 - **Modernização da Aplicação com Migrate to Containers (m2c)**
+
+### **Criação de uma VM para o Processo de Migração**
+
+### **Cloud Shell**
+
+```yaml
+**gcloud compute instances create tcb-vm \
+  --zone=us-west1-a --machine-type=e2-medium  \
+  --subnet=default --scopes="cloud-platform" \
+  --tags=http-server,https-server --image=ubuntu-2204-jammy-v20240319 \
+  --image-project=ubuntu-os-cloud --boot-disk-size=50GB --boot-disk-type=pd-standard \
+  --boot-disk-device-name=tcb-vm**
+```
+
+### **Criação Cluster GKE**
+
+```bash
+**gcloud container clusters create app-01-cluster --project=$DEVSHELL_PROJECT_ID \
+--zone=us-west1-a --machine-type n1-standard-4 --release-channel=stable \
+--image-type ubuntu_containerd --num-nodes 1 --logging=SYSTEM --monitoring=SYSTEM \
+--subnetwork "projects/$DEVSHELL_PROJECT_ID/regions/us-west1/subnetworks/default"**
+```
+
+Após criação: verifique o Cluster (GKE) e Node (GCE) criado.
+
+### **Preparar a VM para Migração**
+
+### Console | SSH `tcb-vm`
+
+Configurando Google Cloud CLI ( gcloud ) 
+
+```yaml
+# Import the Google Cloud public key.
+**curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg**
+
+# Add the gcloud CLI distribution URI as a package source
+**echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list**
+
+# Update and install gcloud
+**sudo apt-get update && sudo apt-get install google-cloud-cli -y**
+
+[PAUSE]
+
+# Get started
+**gcloud init**
+
+Choose the account you would like to use to perform operations for this configuration:
+1 xxxxxxxxxxxxxxx-compute@developer.gserviceaccount.com
+
+Pick cloud project to use:
+1 YOUR-PROJEC-ID
+
+Do you want to configure a default Compute Region and Zone:
+n
+```
+
+**Instalando e Configurando o Docker** 
+
+```yaml
+# Download the convenience script
+**curl -fsSL https://get.docker.com -o install-docker.sh
+
+ls**
+
+# Install Docker
+**sudo sh install-docker.sh**
+
+# Allow the non-root user to access Docker
+**sudo usermod -aG docker $USER**
+
+# Activate the group changes
+**newgrp docker
+
+docker ps -a
+docker images**
+```
+
+**Instalando Skaffold** 
+
+```yaml
+**curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 
+ls
+sudo install skaffold /usr/local/bin/
+
+skaffold version**
+```
+
+> O Skaffold é uma ferramenta de linha de comando que facilita o desenvolvimento contínuo de aplicações Kubernetes.
+> 
+
+> Ele automatiza o ciclo de desenvolvimento, construção e implantação de aplicações, permitindo que desenvolvedores
+> 
+
+> se concentrem no código em vez de se preocuparem com as operações manuais repetitivas.
+> 
+
+### **Skaffold:**
+
+- **Desenvolvido por**: Google
+- **Principais funcionalidades**:
+    - Automação de construção, implantação e sincronização.
+    - Suporte para vários métodos de construção (Docker, Kaniko, Buildpacks).
+    - Integração com CI/CD pipelines.
+    - Configuração via **`skaffold.yaml`**.
+
+**Instalando o Migrate to Containers (m2c)**  
+
+```yaml
+**curl -O "https://m2c-cli-release.storage.googleapis.com/$(curl -s https://m2c-cli-release.storage.googleapis.com/latest)/linux/amd64/m2c"
+ls -la
+chmod +x ./m2c
+ls -la
+
+./m2c version**
+```
+
+**Excluindo arquivos desnecessários:**
+
+```yaml
+**rm -rf install-docker.sh
+rm -rf skaffold**
+```
+
+**Copiando o Sistema de Arquivo (FS - File System) da VM onde a Aplicação** 
+
+Ao copiar o sistema de arquivos da VM de origem, a CLI do Migrate to Containers aplica filtros padrão para reduzir o tamanho da cópia, removendo arquivos geralmente desnecessários para a migração. 
+
+No entanto, para iniciar o servidor Apache, precisamos do diretório /var/log, que é removido por esses filtros. 
+
+Portanto, é necessário editar os filtros padrão para garantir que /var/log/* seja incluído na cópia do sistema de arquivos da VM de origem.
+
+```yaml
+# Copiar o arquivo com a lista dos filtros padrão do Migrate to Containers que são excluidos na migração
+**./m2c copy default-filters > filters.txt
+ls
+cat filters.txt**
+
+# Editar o arquivo e remover a linha "- /var/log/*"
+**vi filters.txt**
+
+Posicione o cursor na linha que contém:  - /var/log/*
+Pressione 'd' duas vezes para deletar a linha corrente.
+
+# Para Salvar e Sair
+**:x**
+
+**cat filters.txt**
+```
+
+**Copiando o Sistema de Arquivos da VM `app-01-vm`:**
+
+```yaml
+**./m2c copy gcloud --project YOUR-PROJECT-ID --zone us-west1-a \
+--vm-name app-01-vm --output app-01-vm-filesystem --filters filters.txt
+
+Copying 'fs' using 'rsync'...**
+```
+
+> O rsync é uma ferramenta poderosa para a sincronização e transferência de arquivos e diretórios entre sistemas de arquivos locais e remotos.
+> 
+
+> É amplamente utilizado em sistemas Unix-like, incluindo Linux e macOS.
+> 
+
+Este comando levará alguns minutos até que todo sistema de arquivos seja copiado!
+
+[Pause]
+
+Uma cópia do sistema de arquivos da VM a ser migrada, estará disponível no diretório `app-01-vm-filesystem`.
+
+```yaml
+**ls 
+ls app-01-vm-filesystem
+cat app-01-vm-filesystem/var/www/html/index.html
+ls app-01-vm-filesystem/var/log/**
+```
+
+### Valide a Criação do Cluster!
+
+- Verifique o Cluster (GKE) e Node (GCE ‘gke-’) criado.
+
+### Stop vm `app-01-vm`
+
+# Parte 3 - Criar Plano de Migração, Gerar Artefatos e Deploy no Cluster
+
+### Console | SSH `tcb-vm`
+
+### Criar Plano de Migração
+
+```yaml
+**./m2c analyze \
+--source app-01-vm-filesystem --plugin linux-vm-container \
+--output analysis-output**
+```
+
+Após a conclusão da análise, um novo diretório chamado `analysis-output` é criado contendo o plano de migração `config.yaml`.
+
+```yaml
+**vi analysis-output/config.yaml**
+```
+
+Gerando os Artefatos para Migração
+
+```yaml
+**./m2c generate --input analysis-output --output migration-artifacts**
+```
+
+Este comando levará alguns minutos até sua conclusão!
+
+[ Pause ]
+
+Os artefatos de migração gerados são adicionados ao diretório `migration-artifacts`.
+
+```yaml
+**ls
+ls migration-artifacts
+ls -ltrh migration-artifacts  |** Verifique o tamanho do arquivo 'vmFiles.tar.gz'
+```
+
+### Deployment do Workload Migrado
+
+```yaml
+# Instalando o plugin de autenticação do Google Cloud SDK para GKE (Google Kubernetes Engine)
+# Este plugin permite que o kubectl utilize as credenciais do gcloud para autenticar-se com clusters GKE
+**sudo apt-get install google-cloud-sdk-gke-gcloud-auth-plugin -y**
+
+# Instalando o Kubectl (ferramenta de linha de comando do Kubernetes)
+**sudo apt-get install kubectl**
+
+# Configurando as credenciais de autenticação para um cluster Kubernetes Engine (GKE)
+**gcloud container clusters get-credentials app-01-cluster --zone us-west1-a --project** **YOUR-PROJECT-ID**
+
+# Verificando Credenciais/Cluster Kubernetes Engine (GKE) configurados
+**cat ~/.kube/config
+kubectl config view**
+```
+
+### Adicionando Serviço de Load Balancer para acesso a Aplicação após Migração:
+
+Precisamos prover acesso a nossa aplicação após migração para o cluster K8S.
+Para isso, adicione um novo serviço do tipo 'LoadBalancer' no arquivo deployment_spec.yaml.
+
+```yaml
+**cd migration-artifacts
+ls
+vi deployment_spec.yaml
+
+Pressione a tecla "Insert" ou "i" para entrar no modo Edição.**
+```
+
+Adicione o código abaixo no final do arquivo:
+
+```yaml
+# Adding Load Balancer service for talent-management-portal
+apiVersion: v1
+kind: Service
+metadata:
+  name: talent-management-portal
+spec:
+  selector:
+    app: linux-system
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+
+---
+```
+
+**Pressione a tecla "esc" para sair do modo de Edição.**
+
+**Pressione a tecla ":x" para Salvar e Sair do Vi.**
+
+### Deploy com o Skaffold
+
+```yaml
+
+****# Criação do Repositório 'aus-repo' no Artifcat Registry
+**gcloud artifacts repositories create linux-system-repo --repository-format=docker \
+--location=us-west1 --description="Docker repository"**
+
+# Configurar a autenticação do Docker para acessar repositórios de imagens do Artifact Registry, na região us-west1:
+**gcloud auth configure-docker us-west1-docker.pkg.dev**
+
+# Deploy dos Artefatos da Migração usando o Skaffold no Repositorio criado:
+**skaffold run -d us-west1-docker.pkg.dev/YOUR-PROJECT-ID/linux-system-repo**
+
+Do Not Worry About this warning:
+****Some taggers failed. Rerun with -vdebug for errors.
+
+# Este passo vai demorar, o aquivo possui um tamanho considerável
+Step 3/9 : ADD vmFiles.tar.gz /
+```
+
+Este comando vai levar 15 ~ 20 minutos…
+
+Os seguintes processos serão executados:
+
+- Build & Push da Imagem
+- K8S Deployment (Pod / Container)
+- K8S Service (Load Balancer)
+
+[ Pause ]
+
+- Valide push da imagem no Artifact Registry
+
+### Verificando IP Externo do Serviço Load Balancer
+
+```yaml
+**kubectl get service** talent-management-portal
+
+**kubectl get node
+kubectl get pods
+kubectl get deployments
+kubectl get services
+kubectl get svc
+kubectl get all**
+```
+
+*Compare o IP do ‘Node - GKE’ com o do ‘LB’!*
+
+*Verifique o Repositório e Imagem criada para o processo de migração!*
+
+- Testar Acesso à Aplicação através do IP Externo do Serviço de Load Balancer
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/6ec767cc-3392-499e-95e4-7e12a16102d5/Untitled.png)
+
+# Evidências
+
+- Resultado do comando **`kubectl get service** talent-management-portal`;
+- Acesso bem sucedido à aplicação através do IP do Serviço de LB.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/4c00a73f-00b7-454e-beb8-74d6762a7f99/Untitled.png)
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/9497a2f3-d685-455b-b4b4-0fc6b3de871c/Untitled.png)
+
+### Exclusão dos Recursos
+
+- Delete Cluster: `app-01-cluster`
+- Delete as VMs: `app-01-vm` | `tcb-vm`
+- Delete Artifact Registry Repo: `linux-system-repo`
+
+***TCB*** 🚀
+
+### Referências:
+
+https://cloud.google.com/migrate/containers/docs/migrate-vm?hl=pt-br
+
+https://cloud.google.com/migrate/containers/docs/m2c-cli/architecture?hl=pt-br
+
+https://cloud.google.com/migrate/containers/docs/m2c-cli-reference-linux?hl=pt-br
+
+https://cloud.google.com/migrate/containers/docs/m2c-cli-relnotes?hl=pt-br
+
+https://cloud.google.com/skaffold?hl=pt_br
