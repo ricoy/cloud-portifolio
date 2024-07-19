@@ -1,0 +1,252 @@
+# **Projeto Hands on - Solução**
+
+### Atenção!!!
+
+### Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados!
+
+Parte 01: **Criação e Configuração da Aplicação em Oregon (USA).**
+
+Parte 02: **Migração das VMs com Storage Snapshot de Oregon (USA) para Sydney (AUS).**
+
+### Criação de um Projeto (Opcional)
+
+- Nome: `tcb-mod5`
+
+### Habilitação das APIs
+
+- APIs & Services | Enable APIs & service
+    - **`Compute Engine API`**
+
+# Parte 1 - Criação das VMs em Oregon (USA)
+
+### Criação GCE’s: `Application-01` e `Database-01`
+
+**Aplicação**
+
+- Nome: `usa-application-01`
+- Região: `us-west1 (Oregon)`
+- Zone: `us-west1-b`
+- Tamanho: `e2-micro`
+- SO: `Debian GNU/Linux 12 (bookworm)` x86/64
+
+Create
+
+**Database**
+
+- Nome: `usa-database-01`
+- Região: `us-west1 (Oregon)`
+- Zone: `us-west1-b`
+- Tamanho: `e2-micro`
+- SO: `Debian GNU/Linux 12 (bookworm)` x86/64
+
+Create
+
+### **GCE - Database: Instalar e Configurar MySQL Server**
+
+### SSH: `usa-database-01`
+
+Theme | Custom | Edit Custom Colors: **Background Color** `#000000`
+
+```yaml
+**sudo apt update
+sudo apt install wget -y
+wget https://repo.mysql.com//mysql-apt-config_0.8.29-1_all.deb
+ls
+sudo dpkg -i mysql-apt-config_0.8.29-1_all.deb
+
+Select OK**
+
+# Installing MySQL Server
+**sudo apt update
+sudo apt install mysql-server -y
+password: welcome1
+
+Select Use Legacy Authentication Method (Retain MySQL 5.x Compatibility)**
+
+# Restarting MySQL Service
+**sudo systemctl restart mysql.service**
+
+# Setting up the MySQL
+**sudo mysql_secure_installation
+welcome1
+
+"ENTER" para todas as perguntas!**
+
+# Downloading SQL File (Database and Tables)
+**wget https://storage.googleapis.com/bootcamp-gcp-en/bootcamp-gcp-storage-db-en.sql
+ls
+mysql -u root -p**
+**welcome1**
+
+# Creating the 'db' and 'tables':
+**source bootcamp-gcp-storage-db-en.sql**
+
+show databases;
+show tables;
+
+# Creating an user called 'app' and changing the privileges:
+**CREATE USER app@'%' IDENTIFIED BY 'welcome1';
+GRANT ALL PRIVILEGES ON clinic.* TO app@'%';
+FLUSH PRIVILEGES;
+exit**
+
+```
+
+Podemos encerrar a conexão SSH com a instância `usa-database-01`.
+
+### **GCE - Application: Configurar e Executar a Aplicação**
+
+### SSH: `usa-application-01`
+
+Theme | Custom | Edit Custom Colors: **Background Color** `#191970`
+
+```yaml
+**sudo apt update
+sudo apt install npm -y
+
+sudo apt install zip wget -y
+wget https://tcb-bootcamps.s3.amazonaws.com/bootcamp-gcp/mod5/bootcamp-gcp-storage-clinic-mib-app.zip
+ls
+unzip bootcamp-gcp-storage-clinic-mib-app.zip
+cd bootcamp-gcp-storage-clinic-mib-app**
+```
+
+Atenção:
+
+Todos os comandos serão executados a partir da pasta:
+
+`bootcamp-gcp-storage-clinic-mib-app`
+
+**Atualizar o arquivo `index.js` com as informações do banco de dados:**
+
+```yaml
+**nano src/index.js**
+```
+
+Seção //**Middlewares**
+
+- **host: ‘Private IP of your usa-database-01’**
+- **user: ‘app’**
+- **password: ‘welcome1’**
+- **database: ‘clinic’**
+
+Sair e Salvar: **^+x** | **Y** | **Enter**
+
+**Instalação do NPM**
+
+```yaml
+**npm install
+
+npm audit fix --force**
+```
+
+> *O NPM (Node Package Manager) é um gerenciador de pacotes para a plataforma Node.js. Ele é uma ferramenta que permite instalar, atualizar, remover e gerenciar as dependências de um projeto Node.js de forma simples e eficiente.*
+> 
+
+**Inicializar a aplicação Node.js**
+
+```yaml
+**node src/index.js**
+```
+
+**Configurar Regra de Firewall para Permitir Acesso à Porta 3000**
+
+- **Name:** `allow-app-port-3000`
+- **Targets:** `All instances in the network`
+- **Source IP ranges:** `0.0.0.0/0`
+- Select **`TCP`** and the port **`3000`**
+
+**Create**
+
+Acesse a aplicação através do IP Público da VM `usa-application-01` na porta `3000`
+
+Cadastre ao menos um paciente:
+
+```yaml
+Cirrus Cloud
+Mike Mouse
+Doug Dog
+```
+
+- Parar as duas instâncias criadas: `usa-application-01` e `usa-database-01`
+
+# Parte 2 - Migração das VMs com Storage Snapshot
+
+- Verificar os discos em uso das instâncias `usa-application-01` e `usa-database-01`.
+- **Fazer Snapshots** dos discos das VMs criadas: `usa-application-01` e `usa-database-01`.
+
+**Cloud Shell**
+
+```yaml
+gcloud compute disks snapshot usa-application-01 --snapshot-names \
+usa-application-snapshot --zone us-west1-b
+
+gcloud compute disks snapshot usa-database-01 --snapshot-names \
+usa-database-snapshot --zone us-west1-b
+```
+
+- **Criar Discos** na região **australia-southeast1 (Sidney)**, utilizando como origem os snapshots gerados da região **us-west1 (Oregon)**.
+
+```yaml
+**gcloud compute disks create aus-app01 --source-snapshot usa-application-snapshot \
+ --zone australia-southeast1-a
+
+gcloud compute disks create aus-db01 --source-snapshot usa-database-snapshot \
+ --zone australia-southeast1-a**
+```
+
+- **Criar as instâncias na região da Austrália, utilizando como origem os discos criados no passo anterior.**
+
+```yaml
+**gcloud compute instances create aus-app01 --machine-type e2-micro --zone \
+australia-southeast1-a --disk name=aus-app01,boot=yes,mode=rw
+
+gcloud compute instances create aus-db01 --machine-type e2-micro --zone \
+australia-southeast1-a --disk name=aus-db01,boot=yes,mode=rw**
+```
+
+### SSH: `aus-app01`
+
+Acessar e Configurar a vm **`aus-app01`** com os dados do servidor de BD `aus-db01` 
+
+```yaml
+**cd bootcamp-gcp-storage-clinic-mib-app/
+nano src/index.js**
+
+host: 'Private IP of your aus-db01 instance'
+
+Save and Exit: **^+x** | **Y** | **Enter
+
+# Installing NPM
+npm install**
+
+**# Running the Application
+node src/index.js**
+```
+
+Testar acesso à Aplicação através do IP Público da VM `aus-app01` na porta `3000`
+
+Os cadastros realizados na aplicação antes da migração, serão apresentados:
+
+```yaml
+Mike Mouse
+Cirrus Cloud
+Doug Dog
+```
+
+# Evidências
+
+- Print com as 04 VMs criadas
+- Print da Aplicação Acessada com IP da VM da Australia
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/ed576016-edfe-455e-83b0-921ff1d94aaf/Untitled.png)
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/e731e22f-54a5-494f-93c3-a1cc986ef8d0/Untitled.png)
+
+### Exclusão dos Recursos
+
+- Excluir Instâncias;
+- Excluir Snapshots;
+- Excluir Discos.
+
+***TCB*** 🚀
