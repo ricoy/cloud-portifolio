@@ -1,0 +1,182 @@
+# Módulo 6 **| Implementação do Projeto Hands on - Solução**
+
+### Atenção!!!
+
+### Essa documentação é constantemente revisada e atualizada conforme mudanças que ocorrem a todo momento nos provedores de cloud, que consequentemente afetam nossos hands-ons, e, em muitos casos, apenas alguns comandos são necessários atualização/adição. Sendo assim, é crucial e obrigatório, durante a implementação dos projetos, o acompanhamento com a ‘Documentação de Solução’ que contém os passos e os comandos necessários, e atualizados!
+
+Parte 01: **Deploy da Aplicação KidsFlix na Finlândia e USA.**
+
+Parte 02: **Deploy de um Load Balancing Global.**
+
+### Criação de um Projeto (Opcional)
+
+- Nome: `tcb-mod6`
+
+### Habilitação das APIs
+
+- APIs & Services | Enable APIs & service
+    - **`Compute Engine API`**
+    - **`Artifact Registry API`**
+    - **`Cloud Build API`**
+    - **`Cloud Run Admin API`**
+
+- **Validando as APIs habilitadas:**
+    - IAM | Asset Inventory | Resource | serviceusage.Service
+    - `gcloud services list`
+    
+
+Docker Process
+
+[Layers | Docker Docs](https://docs.docker.com/build/guide/layers/)
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/0d1b678b-cd91-4256-93c7-73b2e82396d5/757b22b8-3ff4-4d70-8686-2a839e2907b0/Untitled.png)
+
+# Parte 1 - Deploy da Aplicação: Finlândia e USA
+
+### 🇫🇮 App Kids Flix na Finlândia
+
+```yaml
+**wget https://storage.googleapis.com/bootcamp-gcp-en/bootcamp-gcp-module-lb-files-app-finland.zip
+unzip bootcamp-gcp-module-lb-files-app-finland.zip
+cd ~/bootcamp-gcp-module-lb-files-app-finland**
+
+# Criação do Repositório 'finland-repo' no Artifcat Registry
+**gcloud artifacts repositories create finland-repo --repository-format=docker \
+--location=europe-north1 --description="Docker repository"**
+
+# Build do container image utilizando o Cloud Build
+**gcloud builds submit --tag \
+"europe-north1-docker.pkg.dev/$DEVSHELL_PROJECT_ID/finland-repo/appkidsflixfinland"**
+
+# Deploy no Cloud Run
+**gcloud run deploy --image \
+"europe-north1-docker.pkg.dev/$DEVSHELL_PROJECT_ID/finland-repo/appkidsflixfinland" \
+--port=5000 --platform=managed**
+
+Press **Enter** to confirm the default application name: **appkidsflixfinland**
+Select the number of the region '**europe-north1**' typing the number: **14** 
+
+		Atenção: Certifique-se de selecionar o número ref. à região: **europe-north1**
+
+Allow unauthenticated requests by typing:  **y**
+```
+
+### 🇺🇸 App Kids Flix USA
+
+```yaml
+**cd
+wget https://storage.googleapis.com/bootcamp-gcp-en/bootcamp-gcp-module-lb-files-app-usa.zip
+unzip bootcamp-gcp-module-lb-files-app-usa.zip
+cd ~/bootcamp-gcp-module-lb-files-app-usa**
+
+# Criação do Repositório 'usa-repo' no Artifcat Registry
+**gcloud artifacts repositories create usa-repo --repository-format=docker \
+--location=us-central1 --description="Docker repository"**
+
+# Build do container image utilizando o Cloud Build
+**gcloud builds submit --tag \
+"us-central1-docker.pkg.dev/$DEVSHELL_PROJECT_ID/usa-repo/appkidsflixusa"**
+
+# Deploy no Cloud Run
+**gcloud run deploy --image \
+"us-central1-docker.pkg.dev/$DEVSHELL_PROJECT_ID/usa-repo/appkidsflixusa" \
+--port=5000 --platform=managed**
+
+Press **Enter** to confirm the default application name: **appkidsflixusa**
+Select the region, '**us-central1**', typing the number: **32** 
+
+		Atenção: Certifique-se de selecionar o número ref. à região: **us-central1**
+
+Allow unauthenticated requests by typing:  **y**
+```
+
+# Parte 2 - Deploy de um Load Balancing Global
+
+- **Criação de 02 serverless Network Endpoint Groups (NEG)**
+
+```yaml
+**gcloud compute network-endpoint-groups create sneg-appkidsflixfinland \
+--region=europe-north1 --network-endpoint-type=serverless \
+--cloud-run-service=appkidsflixfinland
+
+gcloud compute network-endpoint-groups create sneg-appkidsflixusa \
+--region=us-central1 --network-endpoint-type=serverless \
+--cloud-run-service=appkidsflixusa**
+```
+
+> Os Network Endpoint Groups (NEG) são objetos que especificam grupos de extremidades (endpoints) de rede para serviços que são acessados por LB do GCP.
+> 
+
+> Os NEG baseados em serviço, são usados para especificar grupos de Compute Engine, Google Kubernetes Engine (GKE) ou **Cloud Run**. Eles são úteis quando você deseja direcionar o tráfego para serviços executados em instâncias gerenciadas pelo Google Cloud.
+> 
+
+- **Criação do Serviço de Backend Global**
+
+```yaml
+**gcloud compute backend-services create kidsflix-backend-global --global**
+```
+
+- **Configuração dos ‘NEG’ no Serviço de Backend Global**
+
+```yaml
+**gcloud compute backend-services add-backend kidsflix-backend-global \
+--global --network-endpoint-group=sneg-appkidsflixfinland \
+--network-endpoint-group-region=europe-north1
+
+gcloud compute backend-services add-backend kidsflix-backend-global \
+--global --network-endpoint-group=sneg-appkidsflixusa \
+--network-endpoint-group-region=us-central1**
+```
+
+- **Criação de uma URL MAP para direcionar as requisições de entrada para o Backend**
+
+```yaml
+**gcloud compute url-maps create lb-kidsflix-global \
+--default-service kidsflix-backend-global**
+```
+
+> URL Map é usado para direcionar o tráfego de entrada para os serviços corretos com base nas regras de encaminhamento definidas.
+> 
+
+- **Criação do Target HTTP(S) Proxy para direcionar as requisições para a URL MAP**
+
+```yaml
+**gcloud compute target-http-proxies create lb-kidsflix-httpproxy \
+--url-map=lb-kidsflix-global**
+```
+
+[Target proxies overview  |  Load Balancing  |  Google Cloud](https://cloud.google.com/load-balancing/docs/target-proxies)
+
+> Um proxy HTTP de destino é usado para rotear o tráfego HTTP de entrada para os servidores ou instâncias de backend corretas. Ajuda no balanceamento de carga, roteamento de tráfego, e até mesmo para filtrar ou modificar solicitações HTTP.
+> 
+
+*Proxy de destino melhora a capacidade de resposta e a confiabilidade do serviço!*
+
+- **Reservar Endereço IP destinado para o External HTTP Load Balancer**
+
+```yaml
+**gcloud compute addresses create kidsflix-global-ip --ip-version=IPV4 --global**
+
+# Verifique o IP reservado para o kidsflix-global-ip
+**gcloud compute addresses describe kidsflix-global-ip --format="get(address)" --global**
+```
+
+- **Criação de Regra de Encaminhamento Global - Requisições de Entrada >> Proxy (Frontend)**
+
+```yaml
+gcloud compute forwarding-rules create kidsflix-frontend-global \
+--address=kidsflix-global-ip --target-http-proxy=lb-kidsflix-httpproxy \
+--global --ports=80
+```
+
+- Configuração Regra de Firewall - Acesso à Porta 80 (HTTP)
+    - Firewal Rule Name: `allow-app-port-80`
+
+Para realizar os testes de acesso à aplicação e validar o direcionamento inteligente com base na localização, instale a seguinte extensão no seu navegador Chrome/Edge:
+
+- Nome Extensão: `VPN Proxy VeePN`
+- Microsoft Edge: [Free VPN for Edge - VPN Proxy VeePN - Microsoft Edge Addons](https://microsoftedge.microsoft.com/addons/detail/free-vpn-for-edge-vpn-p/panammoooggmlehahpcjckcncfeffcoi)
+- Após instalação, acesse a extensão e ative a VPN.
+
+- Para os testes da aplicação **KidsFlix nos EUA**, você pode selecionar **Oregon**
+- Para os testes da aplicação **KidsFlix na Finlândia**, você pode selecionar **França**.
